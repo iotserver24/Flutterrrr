@@ -4,8 +4,6 @@ import '../models/message.dart';
 import '../models/ai_model.dart';
 import '../services/database_service.dart';
 import '../services/api_service.dart';
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ChatProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
@@ -38,17 +36,9 @@ class ChatProvider extends ChangeNotifier {
   }
 
   void _initializeApiService(String? providedApiKey) {
-    // Priority: 1. Provided API key, 2. Environment variable, 3. null
-    String? apiKey = providedApiKey;
-    
-    if (apiKey == null && !kIsWeb) {
-      try {
-        apiKey = Platform.environment['XIBE_API'];
-      } catch (e) {
-        // Environment variables might not be available in all contexts
-        apiKey = null;
-      }
-    }
+    // Use provided API key from settings, or fallback to hardcoded test API key
+    // Note: This test key is hardcoded for development/testing purposes
+    String? apiKey = providedApiKey ?? 'XAI_t2o3pFT7JpV026x6vszxpIH55SFcVgjS';
     _apiService = ApiService(apiKey: apiKey);
   }
 
