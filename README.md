@@ -1,5 +1,5 @@
 # Xibe Chat
-
+//copilot made this lol
 A modern AI chat application for Android built with Flutter.
 
 ## Features
