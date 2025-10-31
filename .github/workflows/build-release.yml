@@ -103,13 +103,14 @@ jobs:
       
       - name: Build Windows MSIX
         run: |
-          dart pub global activate msix
-          dart pub global run msix:create --certificate-path ${{ env.CERT_PATH }} --certificate-password ${{ env.CERT_PASSWORD }} --display-name "Xibe Chat" --publisher-display-name "XibeChat" --identity-name "XibeChat.XibeChat" --version ${{ inputs.version }}.${{ inputs.build_number }}
+          flutter pub run msix:create --certificate-path ${{ env.CERT_PATH }} --certificate-password ${{ env.CERT_PASSWORD }} --version ${{ inputs.version }}.${{ inputs.build_number }}
       
       - name: Rename Windows artifacts
         run: |
           Copy-Item -Path "build\windows\x64\runner\Release" -Destination "xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}" -Recurse
-          if (Test-Path "build\windows\x64\runner\Release\xibe_chat.msix") {
+          if (Test-Path "xibe_chat.msix") {
+            Copy-Item -Path "xibe_chat.msix" -Destination "xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.msix"
+          } elseif (Test-Path "build\windows\x64\runner\Release\xibe_chat.msix") {
             Copy-Item -Path "build\windows\x64\runner\Release\xibe_chat.msix" -Destination "xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.msix"
           }
         shell: powershell
@@ -118,7 +119,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe
-          path: xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}
+          path: xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}/**
           retention-days: 1
       
       - name: Upload Windows MSIX artifact
@@ -145,6 +146,20 @@ jobs:
       
       - name: Display structure of downloaded files
         run: ls -R artifacts
+      
+      - name: Prepare Windows EXE for release
+        run: |
+          cd artifacts/windows-exe
+          zip -r ../../xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip .
+          cd ../..
+      
+      - name: Move files to release directory
+        run: |
+          mkdir -p release-files
+          mv artifacts/android-apk/* release-files/ || true
+          mv artifacts/windows-msix/* release-files/ || true
+          mv xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip release-files/ || true
+          ls -la release-files/
       
       - name: Create Git Tag
         uses: actions/github-script@v7
@@ -173,10 +188,7 @@ jobs:
           name: Xibe Chat v${{ inputs.version }}-${{ inputs.build_number }}
           draft: false
           prerelease: false
-          files: |
-            artifacts/android-apk/*
-            artifacts/windows-exe/*
-            artifacts/windows-msix/*
+          files: release-files/*
           body: |
             ## Xibe Chat v${{ inputs.version }}-${{ inputs.build_number }}
             
