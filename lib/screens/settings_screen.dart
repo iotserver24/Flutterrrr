@@ -178,7 +178,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       onChanged: (value) {
-                        setState(() {}); // Update counter
+                        // Trigger rebuild to update the character counter display
+                        setState(() {});
                       },
                     ),
                   ],

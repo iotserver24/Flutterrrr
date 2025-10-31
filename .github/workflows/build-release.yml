@@ -83,7 +83,8 @@ jobs:
         run: |
           if (!(Test-Path "windows")) {
             # Create in a temporary directory with valid name, then move
-            $tempDir = New-Item -ItemType Directory -Path "$env:TEMP\xibe_chat_temp" -Force
+            $guid = [guid]::NewGuid().ToString()
+            $tempDir = New-Item -ItemType Directory -Path "$env:TEMP\xibe_chat_temp_$guid" -Force
             Copy-Item -Path "pubspec.yaml" -Destination "$tempDir\pubspec.yaml"
             Copy-Item -Path "lib" -Destination "$tempDir\lib" -Recurse -Force
             Push-Location $tempDir
