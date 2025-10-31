@@ -53,7 +53,7 @@ class ApiService {
 
       // Build messages array in OpenAI format
       final messages = [
-        ...history.map((m) => m.toApiFormat()).toList(),
+        ...history.map((m) => m.toApiFormat()),
         {'role': 'user', 'content': message},
       ];
 
@@ -114,7 +114,7 @@ class ApiService {
   }) async {
     try {
       final messages = [
-        ...history.map((m) => m.toApiFormat()).toList(),
+        ...history.map((m) => m.toApiFormat()),
         {'role': 'user', 'content': message},
       ];
 

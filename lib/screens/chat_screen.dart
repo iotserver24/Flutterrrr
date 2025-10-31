@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
+import '../models/message.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/chat_input.dart';
 import '../widgets/typing_indicator.dart';
