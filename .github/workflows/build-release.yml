@@ -15,39 +15,39 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write
       actions: read
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
-      
+
       - name: Flutter doctor
         run: flutter doctor -v
-      
+
       - name: Install dependencies
         run: flutter pub get
-      
+
       - name: Analyze code
         run: flutter analyze
-      
+
       - name: Build Universal APK
         run: flutter build apk --release
-      
+
       - name: Rename APK
         run: |
           mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.apk
@@ -61,24 +61,24 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    
+
     permissions:
       contents: write
       actions: read
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
-      
+
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
-      
+
       - name: Create Windows platform files
         run: |
           if (!(Test-Path "windows")) {
@@ -94,13 +94,13 @@ jobs:
             Remove-Item -Path $tempDir -Recurse -Force
           }
         shell: powershell
-      
+
       - name: Flutter doctor
         run: flutter doctor -v
-      
+
       - name: Install dependencies
         run: flutter pub get
-      
+
       - name: Create self-signed certificate
         run: |
           $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=XibeChat" -KeyUsage DigitalSignature -FriendlyName "XibeChat" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
@@ -111,10 +111,10 @@ jobs:
           echo "CERT_PATH=$certPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "CERT_PASSWORD=$password" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         shell: powershell
-      
+
       - name: Build Windows EXE
         run: flutter build windows --release
-      
+
       - name: Build Windows MSIX
         run: |
           flutter pub run msix:create --certificate-path ${{ env.CERT_PATH }} --certificate-password ${{ env.CERT_PASSWORD }} --version ${{ inputs.version }}.${{ inputs.build_number }}
@@ -130,14 +130,14 @@ jobs:
             Write-Warning "No MSIX file found"
           }
         shell: powershell
-      
+
       - name: Upload Windows EXE artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe
           path: xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}/**
           retention-days: 1
-      
+
       - name: Upload Windows MSIX artifact
         uses: actions/upload-artifact@v4
         if: hashFiles('xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.msix') != ''
@@ -149,20 +149,20 @@ jobs:
   create-release:
     needs: [build-android, build-windows]
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write
       actions: read
-    
+
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-      
+
       - name: Display structure of downloaded files
         run: ls -R artifacts
-      
+
       - name: Prepare Windows EXE for release
         run: |
           cd artifacts/windows-exe
@@ -172,26 +172,30 @@ jobs:
       - name: Move files to release directory
         run: |
           mkdir -p release-files
+          # Move Android APK
           if [ -d "artifacts/android-apk" ] && [ "$(ls -A artifacts/android-apk)" ]; then
             mv artifacts/android-apk/* release-files/
-            echo "Moved Android APK files"
+            echo "✓ Moved Android APK files"
           else
-            echo "Warning: No Android APK files found"
+            echo "⚠ Warning: No Android APK files found"
           fi
+          # Move Windows MSIX
           if [ -d "artifacts/windows-msix" ] && [ "$(ls -A artifacts/windows-msix)" ]; then
             mv artifacts/windows-msix/* release-files/
-            echo "Moved Windows MSIX files"
+            echo "✓ Moved Windows MSIX files"
           else
-            echo "Warning: No Windows MSIX files found"
+            echo "⚠ Warning: No Windows MSIX files found"
           fi
+          # Move Windows EXE zip
           if [ -f "xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip" ]; then
             mv xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip release-files/
-            echo "Moved Windows EXE zip"
+            echo "✓ Moved Windows EXE zip"
           else
-            echo "Warning: No Windows EXE zip found"
+            echo "⚠ Warning: No Windows EXE zip found"
           fi
-          echo "Release files:"
-          ls -la release-files/
+          echo ""
+          echo "📦 Release files ready:"
+          ls -lh release-files/
       
       - name: Create Git Tag
         uses: actions/github-script@v7
@@ -205,15 +209,16 @@ jobs:
                 ref: `refs/tags/${tag}`,
                 sha: context.sha
               });
+              console.log(`✓ Created tag: ${tag}`);
             } catch (error) {
               if (error.status === 422) {
-                console.log('Tag already exists');
+                console.log(`⚠ Tag ${tag} already exists, using existing tag`);
               } else {
                 throw error;
               }
             }
       
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ inputs.version }}-${{ inputs.build_number }}
@@ -221,40 +226,60 @@ jobs:
           draft: false
           prerelease: false
           files: release-files/*
+          fail_on_unmatched_files: true
           body: |
-            ## Xibe Chat v${{ inputs.version }}-${{ inputs.build_number }}
+            ## 🚀 Xibe Chat v${{ inputs.version }}-${{ inputs.build_number }}
             
-            ### Download
+            ### 📥 Download Options
             
-            **Android:**
-            - Download the APK file to install on your Android device
+            **📱 Android:**
+            - `xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.apk` - Universal APK for all Android devices
             
-            **Windows:**
-            - Download the MSIX file for Windows Store-style installation
-            - Or download the EXE folder for portable installation
+            **💻 Windows:**
+            - `xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.msix` - Windows Store-style installer
+            - `xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip` - Portable version (no installation required)
             
-            ### Installation
+            ---
             
-            **Android:**
+            ### 📋 Installation Instructions
+            
+            #### Android
             1. Download the APK file
-            2. Enable "Install from Unknown Sources" in Android settings
-            3. Open the APK file to install
+            2. Enable "Install from Unknown Sources" in your device settings
+            3. Tap the downloaded APK to install
             
-            **Windows:**
-            - For MSIX: Double-click to install (requires self-signed certificate trust)
-            - For EXE: Extract the folder and run xibe_chat.exe
+            #### Windows MSIX
+            1. Download the MSIX file
+            2. Double-click to install
+            3. You may need to trust the self-signed certificate on first install
             
-            ### What's New
-            - AI-powered chat interface
-            - Multiple conversation threads
-            - Dark/Light theme support
-            - Markdown message rendering
-            - Local chat history with SQLite
-            - Web search integration
+            #### Windows Portable (ZIP)
+            1. Download the ZIP file
+            2. Extract to any folder
+            3. Run `xibe_chat.exe` - no installation needed!
+            
+            ---
+            
+            ### ✨ Features
+            - 🤖 AI-powered chat interface
+            - 💬 Multiple conversation threads
+            - 🌓 Dark/Light theme support
+            - 📝 Markdown message rendering
+            - 💾 Local chat history with SQLite
+            - 🔍 Web search integration
+            
+            ---
+            
+            ### 📊 Build Information
+            - **Version:** ${{ inputs.version }}
+            - **Build Number:** ${{ inputs.build_number }}
+            - **Build Date:** ${{ github.event.repository.updated_at }}
+            - **Commit:** ${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Delete artifacts
+
+      - name: Cleanup artifacts
+        if: always()
         uses: geekyeggo/delete-artifact@v5
         with:
           name: |
