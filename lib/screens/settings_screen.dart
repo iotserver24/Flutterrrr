@@ -13,20 +13,23 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _apiKeyController = TextEditingController();
+  final TextEditingController _systemPromptController = TextEditingController();
   bool _isObscured = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final apiKey = Provider.of<SettingsProvider>(context, listen: false).apiKey;
-      _apiKeyController.text = apiKey ?? '';
+      final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+      _apiKeyController.text = settingsProvider.apiKey ?? '';
+      _systemPromptController.text = settingsProvider.systemPrompt ?? '';
     });
   }
 
   @override
   void dispose() {
     _apiKeyController.dispose();
+    _systemPromptController.dispose();
     super.dispose();
   }
 
@@ -115,6 +118,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                       ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Custom System Prompt',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Set a custom system prompt to define AI behavior (max 1000 characters). Leave empty to use default.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _systemPromptController,
+                      maxLength: 1000,
+                      maxLines: 5,
+                      decoration: InputDecoration(
+                        hintText: 'e.g., You are a helpful assistant that...',
+                        counterText: '${_systemPromptController.text.length}/1000',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.save, color: Colors.green),
+                          onPressed: () async {
+                            final prompt = _systemPromptController.text.trim();
+                            final settingsProvider =
+                                Provider.of<SettingsProvider>(context, listen: false);
+                            final chatProvider =
+                                Provider.of<ChatProvider>(context, listen: false);
+                            
+                            await settingsProvider.setSystemPrompt(
+                              prompt.isEmpty ? null : prompt,
+                            );
+                            chatProvider.updateSystemPrompt(
+                              prompt.isEmpty ? null : prompt,
+                            );
+                            
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('System prompt saved successfully'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      onChanged: (value) {
+                        // Trigger rebuild to update the character counter display
+                        setState(() {});
+                      },
                     ),
                   ],
                 ),

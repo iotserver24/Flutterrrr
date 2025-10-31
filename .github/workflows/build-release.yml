@@ -80,7 +80,20 @@ jobs:
         run: flutter config --enable-windows-desktop
       
       - name: Create Windows platform files
-        run: flutter create --platforms=windows .
+        run: |
+          if (!(Test-Path "windows")) {
+            # Create in a temporary directory with valid name, then move
+            $guid = [guid]::NewGuid().ToString()
+            $tempDir = New-Item -ItemType Directory -Path "$env:TEMP\xibe_chat_temp_$guid" -Force
+            Copy-Item -Path "pubspec.yaml" -Destination "$tempDir\pubspec.yaml"
+            Copy-Item -Path "lib" -Destination "$tempDir\lib" -Recurse -Force
+            Push-Location $tempDir
+            flutter create --platforms=windows .
+            Pop-Location
+            Move-Item -Path "$tempDir\windows" -Destination "windows" -Force
+            Remove-Item -Path $tempDir -Recurse -Force
+          }
+        shell: powershell
       
       - name: Flutter doctor
         run: flutter doctor -v

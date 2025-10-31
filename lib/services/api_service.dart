@@ -39,6 +39,7 @@ class ApiService {
     required String message,
     required List<Message> history,
     required String model,
+    String? systemPrompt,
   }) async* {
     try {
       final request = http.Request(
@@ -53,6 +54,8 @@ class ApiService {
 
       // Build messages array in OpenAI format
       final messages = [
+        if (systemPrompt != null && systemPrompt.isNotEmpty)
+          {'role': 'system', 'content': systemPrompt},
         ...history.map((m) => m.toApiFormat()),
         {'role': 'user', 'content': message},
       ];
@@ -111,9 +114,12 @@ class ApiService {
     required String message,
     required List<Message> history,
     required String model,
+    String? systemPrompt,
   }) async {
     try {
       final messages = [
+        if (systemPrompt != null && systemPrompt.isNotEmpty)
+          {'role': 'system', 'content': systemPrompt},
         ...history.map((m) => m.toApiFormat()),
         {'role': 'user', 'content': message},
       ];

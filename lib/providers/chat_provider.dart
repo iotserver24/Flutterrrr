@@ -18,6 +18,7 @@ class ChatProvider extends ChangeNotifier {
   String _streamingContent = '';
   List<AiModel> _availableModels = [];
   String _selectedModel = 'gemini'; // Default model
+  String? _systemPrompt;
 
   List<Chat> get chats => _chats;
   Chat? get currentChat => _currentChat;
@@ -28,8 +29,10 @@ class ChatProvider extends ChangeNotifier {
   String get streamingContent => _streamingContent;
   List<AiModel> get availableModels => _availableModels;
   String get selectedModel => _selectedModel;
+  String? get systemPrompt => _systemPrompt;
 
-  ChatProvider({String? apiKey}) {
+  ChatProvider({String? apiKey, String? systemPrompt}) {
+    _systemPrompt = systemPrompt;
     _initializeApiService(apiKey);
     _loadChats();
     _loadModels();
@@ -45,6 +48,11 @@ class ChatProvider extends ChangeNotifier {
   void updateApiKey(String? apiKey) {
     _initializeApiService(apiKey);
     _loadModels(); // Reload models with new API key
+  }
+
+  void updateSystemPrompt(String? systemPrompt) {
+    _systemPrompt = systemPrompt;
+    notifyListeners();
   }
 
   Future<void> _loadModels() async {
@@ -151,6 +159,7 @@ class ChatProvider extends ChangeNotifier {
         message: content,
         history: historyForApi,
         model: _selectedModel,
+        systemPrompt: _systemPrompt,
       )) {
         _streamingContent += chunk;
         notifyListeners();
