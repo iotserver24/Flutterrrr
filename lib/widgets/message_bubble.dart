@@ -6,8 +6,13 @@ import '../models/message.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
+  final bool isStreaming;
 
-  const MessageBubble({super.key, required this.message});
+  const MessageBubble({
+    super.key,
+    required this.message,
+    this.isStreaming = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -76,30 +81,44 @@ class MessageBubble extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  timeFormat.format(message.timestamp),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.white.withOpacity(0.6),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: message.content));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Message copied to clipboard'),
-                        duration: Duration(seconds: 1),
+                if (isStreaming)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
                       ),
-                    );
-                  },
-                  child: Icon(
-                    Icons.copy,
-                    size: 14,
-                    color: Colors.white.withOpacity(0.6),
+                    ),
+                  )
+                else
+                  Text(
+                    timeFormat.format(message.timestamp),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white.withOpacity(0.6),
+                    ),
                   ),
-                ),
+                if (!isStreaming) const SizedBox(width: 8),
+                if (!isStreaming)
+                  InkWell(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: message.content));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Message copied to clipboard'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    child: Icon(
+                      Icons.copy,
+                      size: 14,
+                      color: Colors.white.withOpacity(0.6),
+                    ),
+                  ),
               ],
             ),
           ],

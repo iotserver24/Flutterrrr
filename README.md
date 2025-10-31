@@ -4,14 +4,18 @@ A modern AI chat application for Android built with Flutter.
 
 ## Features
 
-- 🤖 AI-powered chat interface
+- 🤖 AI-powered chat interface with Xibe API integration
+- 🔄 Real-time streaming responses for live chat
+- 🎯 Multiple AI model selection (Gemini, OpenAI, DeepSeek, Mistral, and more)
 - 💬 Multiple conversation threads
+- 👋 Smart greetings based on time of day
+- 🎨 Beautiful animations and smooth transitions
 - 🌙 Dark/Light theme support
 - 📝 Markdown message rendering
 - 💾 Local chat history with SQLite
-- 🌐 Web search integration
 - 📋 Copy message functionality
 - ⚡ Real-time typing indicators
+- 🔑 Configurable API key support
 
 ## Screenshots
 
@@ -40,12 +44,31 @@ The APK will be at `build/app/outputs/flutter-apk/app-release.apk`.
 
 ## Configuration
 
-The app connects to an AI backend at `http://my-vps:3000/api/chat`. You can modify the API endpoint in `lib/services/api_service.dart`.
+### API Key Setup
 
-To change the API endpoint, edit line 8 in `lib/services/api_service.dart`:
-```dart
-ApiService({this.baseUrl = 'http://your-server:port'});
-```
+The app uses the Xibe API (https://api.xibe.app) for AI responses. You can configure the API key in two ways:
+
+1. **Through the app settings**:
+   - Open the app
+   - Navigate to Settings (☰ menu → Settings icon)
+   - Enter your Xibe API key in the "API Configuration" section
+   - Click the save button
+
+2. **Using environment variable**:
+   - Set the `XIBE_API` environment variable with your API key
+   - The app will automatically use this key if no key is set in settings
+
+If no API key is configured, the app will attempt to use the default configuration.
+
+### Available AI Models
+
+The app automatically fetches available models from the Xibe API. You can switch between models using the robot icon (🤖) in the top right corner of the chat screen. Available models include:
+- Gemini 2.5 Flash Lite
+- OpenAI GPT-5 Nano
+- DeepSeek V3.1
+- Mistral Small 3.2
+- Qwen 2.5 Coder
+- And many more!
 
 ## Building from Source
 

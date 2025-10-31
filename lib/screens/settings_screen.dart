@@ -2,9 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/chat_provider.dart';
+import '../providers/settings_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final TextEditingController _apiKeyController = TextEditingController();
+  bool _isObscured = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final apiKey = Provider.of<SettingsProvider>(context, listen: false).apiKey;
+      _apiKeyController.text = apiKey ?? '';
+    });
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +43,85 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         children: [
           const SizedBox(height: 16),
+          _buildSection(
+            context,
+            'API Configuration',
+            [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Xibe API Key',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Enter your Xibe API key. If left empty, the app will use the default key from environment.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _apiKeyController,
+                      obscureText: _isObscured,
+                      decoration: InputDecoration(
+                        hintText: 'Enter API key (optional)',
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _isObscured ? Icons.visibility : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isObscured = !_isObscured;
+                                });
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.save, color: Colors.green),
+                              onPressed: () async {
+                                final apiKey = _apiKeyController.text.trim();
+                                final settingsProvider =
+                                    Provider.of<SettingsProvider>(context, listen: false);
+                                final chatProvider =
+                                    Provider.of<ChatProvider>(context, listen: false);
+                                
+                                await settingsProvider.setApiKey(
+                                  apiKey.isEmpty ? null : apiKey,
+                                );
+                                chatProvider.updateApiKey(
+                                  apiKey.isEmpty ? null : apiKey,
+                                );
+                                
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('API key saved successfully'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(),
           _buildSection(
             context,
             'Appearance',

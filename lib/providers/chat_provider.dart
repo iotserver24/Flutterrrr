@@ -1,27 +1,86 @@
 import 'package:flutter/material.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
+import '../models/ai_model.dart';
 import '../services/database_service.dart';
 import '../services/api_service.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ChatProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
-  final ApiService _apiService = ApiService();
+  late ApiService _apiService;
 
   List<Chat> _chats = [];
   Chat? _currentChat;
   List<Message> _messages = [];
   bool _isLoading = false;
+  bool _isStreaming = false;
   String? _error;
+  String _streamingContent = '';
+  List<AiModel> _availableModels = [];
+  String _selectedModel = 'gemini'; // Default model
 
   List<Chat> get chats => _chats;
   Chat? get currentChat => _currentChat;
   List<Message> get messages => _messages;
   bool get isLoading => _isLoading;
+  bool get isStreaming => _isStreaming;
   String? get error => _error;
+  String get streamingContent => _streamingContent;
+  List<AiModel> get availableModels => _availableModels;
+  String get selectedModel => _selectedModel;
 
-  ChatProvider() {
+  ChatProvider({String? apiKey}) {
+    _initializeApiService(apiKey);
     _loadChats();
+    _loadModels();
+  }
+
+  void _initializeApiService(String? providedApiKey) {
+    // Priority: 1. Provided API key, 2. Environment variable, 3. null
+    String? apiKey = providedApiKey;
+    
+    if (apiKey == null && !kIsWeb) {
+      try {
+        apiKey = Platform.environment['XIBE_API'];
+      } catch (e) {
+        // Environment variables might not be available in all contexts
+        apiKey = null;
+      }
+    }
+    _apiService = ApiService(apiKey: apiKey);
+  }
+
+  void updateApiKey(String? apiKey) {
+    _initializeApiService(apiKey);
+    _loadModels(); // Reload models with new API key
+  }
+
+  Future<void> _loadModels() async {
+    try {
+      _availableModels = await _apiService.fetchModels();
+      notifyListeners();
+    } catch (e) {
+      // Silently fail, use default model
+      _availableModels = [];
+    }
+  }
+
+  void setSelectedModel(String model) {
+    _selectedModel = model;
+    notifyListeners();
+  }
+
+  String getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good morning! ☀️';
+    } else if (hour < 17) {
+      return 'Good afternoon! 🌤️';
+    } else {
+      return 'Good evening! 🌙';
+    }
   }
 
   Future<void> _loadChats() async {
@@ -58,7 +117,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendMessage(String content, {bool enableWebSearch = true}) async {
+  Future<void> sendMessage(String content) async {
     if (_currentChat == null) {
       await createNewChat();
     }
@@ -88,23 +147,31 @@ class ChatProvider extends ChangeNotifier {
     }
 
     _isLoading = true;
+    _isStreaming = true;
+    _streamingContent = '';
     notifyListeners();
 
     try {
       // Get all messages except the user message we just added (last one in the list)
       final history = _messages.where((m) => m.role != 'system').toList();
       final historyForApi = history.length > 1 ? history.sublist(0, history.length - 1) : <Message>[];
-      final response = await _apiService.sendMessage(
+      
+      // Stream the response
+      await for (final chunk in _apiService.sendMessageStream(
         message: content,
         history: historyForApi,
-        enableWebSearch: enableWebSearch,
-      );
+        model: _selectedModel,
+      )) {
+        _streamingContent += chunk;
+        notifyListeners();
+      }
 
+      // Save the complete response
       final assistantMessage = Message(
         role: 'assistant',
-        content: response['response'] ?? '',
+        content: _streamingContent,
         timestamp: DateTime.now(),
-        webSearchUsed: response['web_search_used'] ?? false,
+        webSearchUsed: false,
         chatId: _currentChat!.id!,
       );
 
@@ -120,10 +187,14 @@ class ChatProvider extends ChangeNotifier {
       );
       await _databaseService.updateChat(_currentChat!);
       await _loadChats();
+      
+      _streamingContent = '';
     } catch (e) {
       _error = e.toString();
+      _streamingContent = '';
     } finally {
       _isLoading = false;
+      _isStreaming = false;
       notifyListeners();
     }
   }
