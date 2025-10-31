@@ -5,6 +5,7 @@ import '../models/ai_model.dart';
 import '../services/database_service.dart';
 import '../services/api_service.dart';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ChatProvider extends ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
@@ -30,22 +31,30 @@ class ChatProvider extends ChangeNotifier {
   List<AiModel> get availableModels => _availableModels;
   String get selectedModel => _selectedModel;
 
-  ChatProvider() {
-    _initializeApiService();
+  ChatProvider({String? apiKey}) {
+    _initializeApiService(apiKey);
     _loadChats();
     _loadModels();
   }
 
-  void _initializeApiService() {
-    // Try to get API key from environment variable
-    String? apiKey;
-    try {
-      apiKey = Platform.environment['XIBE_API'];
-    } catch (e) {
-      // Environment variables might not be available in all contexts
-      apiKey = null;
+  void _initializeApiService(String? providedApiKey) {
+    // Priority: 1. Provided API key, 2. Environment variable, 3. null
+    String? apiKey = providedApiKey;
+    
+    if (apiKey == null && !kIsWeb) {
+      try {
+        apiKey = Platform.environment['XIBE_API'];
+      } catch (e) {
+        // Environment variables might not be available in all contexts
+        apiKey = null;
+      }
     }
     _apiService = ApiService(apiKey: apiKey);
+  }
+
+  void updateApiKey(String? apiKey) {
+    _initializeApiService(apiKey);
+    _loadModels(); // Reload models with new API key
   }
 
   Future<void> _loadModels() async {

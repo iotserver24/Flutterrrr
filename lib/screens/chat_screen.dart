@@ -40,7 +40,26 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Xibe Chat'),
+        title: Consumer<ChatProvider>(
+          builder: (context, chatProvider, child) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Xibe Chat'),
+                if (chatProvider.selectedModel.isNotEmpty)
+                  Text(
+                    'Model: ${chatProvider.selectedModel}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                      color: Colors.grey,
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
@@ -58,7 +77,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 },
                 itemBuilder: (BuildContext context) {
                   if (chatProvider.availableModels.isEmpty) {
-                    return [
+                    return const [
                       PopupMenuItem<String>(
                         enabled: false,
                         child: Text('Loading models...'),
