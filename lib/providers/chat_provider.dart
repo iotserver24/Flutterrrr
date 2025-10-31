@@ -36,7 +36,8 @@ class ChatProvider extends ChangeNotifier {
   }
 
   void _initializeApiService(String? providedApiKey) {
-    // Use provided API key, or default hardcoded API key
+    // Use provided API key from settings, or fallback to hardcoded test API key
+    // Note: This test key is hardcoded for development/testing purposes
     String? apiKey = providedApiKey ?? 'XAI_t2o3pFT7JpV026x6vszxpIH55SFcVgjS';
     _apiService = ApiService(apiKey: apiKey);
   }
