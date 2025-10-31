@@ -17,6 +17,7 @@ dependencies:
   shared_preferences: ^2.2.0
   flutter_markdown: ^0.6.18
   intl: ^0.18.0
+  msix: ^3.16.7
 
 dev_dependencies:
   flutter_test:
@@ -25,3 +26,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+msix_config:
+  display_name: Xibe Chat
+  publisher_display_name: XibeChat
+  identity_name: XibeChat.XibeChat
+  msix_version: 1.0.0.0
+  logo_path: android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+  capabilities: internetClient
