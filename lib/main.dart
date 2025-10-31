@@ -20,9 +20,18 @@ class XibeChatApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProxyProvider<SettingsProvider, ChatProvider>(
-          create: (_) => ChatProvider(apiKey: null),
-          update: (_, settings, previous) =>
-              previous ?? ChatProvider(apiKey: settings.apiKey),
+          create: (_) => ChatProvider(apiKey: null, systemPrompt: null),
+          update: (_, settings, previous) {
+            if (previous != null) {
+              previous.updateApiKey(settings.apiKey);
+              previous.updateSystemPrompt(settings.systemPrompt);
+              return previous;
+            }
+            return ChatProvider(
+              apiKey: settings.apiKey,
+              systemPrompt: settings.systemPrompt,
+            );
+          },
         ),
       ],
       child: Consumer<ThemeProvider>(
