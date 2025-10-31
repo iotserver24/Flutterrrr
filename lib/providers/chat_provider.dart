@@ -91,6 +91,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Get all messages except the user message we just added (last one in the list)
       final history = _messages.where((m) => m.role != 'system').toList();
       final historyForApi = history.length > 1 ? history.sublist(0, history.length - 1) : <Message>[];
       final response = await _apiService.sendMessage(

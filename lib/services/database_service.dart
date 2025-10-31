@@ -67,10 +67,14 @@ class DatabaseService {
 
   Future<void> deleteChat(int chatId) async {
     final db = await database;
-    await db.transaction((txn) async {
-      await txn.delete('messages', where: 'chatId = ?', whereArgs: [chatId]);
-      await txn.delete('chats', where: 'id = ?', whereArgs: [chatId]);
-    });
+    try {
+      await db.transaction((txn) async {
+        await txn.delete('messages', where: 'chatId = ?', whereArgs: [chatId]);
+        await txn.delete('chats', where: 'id = ?', whereArgs: [chatId]);
+      });
+    } catch (e) {
+      throw Exception('Failed to delete chat: $e');
+    }
   }
 
   Future<int> insertMessage(Message message) async {
