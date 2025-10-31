@@ -92,9 +92,10 @@ class ChatProvider extends ChangeNotifier {
 
     try {
       final history = _messages.where((m) => m.role != 'system').toList();
+      final historyForApi = history.length > 1 ? history.sublist(0, history.length - 1) : <Message>[];
       final response = await _apiService.sendMessage(
         message: content,
-        history: history.sublist(0, history.length - 1),
+        history: historyForApi,
         enableWebSearch: enableWebSearch,
       );
 

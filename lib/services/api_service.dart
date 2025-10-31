@@ -5,6 +5,8 @@ import '../models/message.dart';
 class ApiService {
   final String baseUrl;
 
+  // Default API endpoint - can be changed by passing a different baseUrl
+  // Example: ApiService(baseUrl: 'http://your-server:3000')
   ApiService({this.baseUrl = 'http://my-vps:3000'});
 
   Future<Map<String, dynamic>> sendMessage({
