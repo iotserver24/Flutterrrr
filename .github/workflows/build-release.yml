@@ -1,0 +1,78 @@
+name: Build and Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      actions: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+      
+      - name: Flutter doctor
+        run: flutter doctor -v
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Analyze code
+        run: flutter analyze
+      
+      - name: Build APK
+        run: flutter build apk --release
+      
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xibe-chat-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+          draft: false
+          prerelease: false
+          name: Xibe Chat ${{ github.ref_name }}
+          body: |
+            ## Xibe Chat ${{ github.ref_name }}
+            
+            ### Download
+            Download the APK file below to install on your Android device.
+            
+            ### Installation
+            1. Download `app-release.apk`
+            2. Enable "Install from Unknown Sources" in Android settings
+            3. Open the APK file to install
+            
+            ### What's New
+            - AI-powered chat interface
+            - Multiple conversation threads
+            - Dark/Light theme support
+            - Markdown message rendering
+            - Local chat history with SQLite
+            - Web search integration
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
