@@ -6,16 +6,19 @@ A modern AI chat application built with Flutter - available on Android, iOS, Win
 
 The GitHub Actions Android build issue has been fixed! 
 
-**Quick Setup (5 minutes):** See [QUICK_START.md](QUICK_START.md) for immediate instructions.
+**Quick Setup (5 minutes):** See [GITHUB_SECRET_SETUP.md](GITHUB_SECRET_SETUP.md) for GitHub Secrets setup with direct download URLs.
 
 ## 🔐 Android Release Signing
 
 The app is now configured for signed Android releases! To build signed APKs/AABs:
 
+- **🚀 GitHub Secrets Setup**: [GITHUB_SECRET_SETUP.md](GITHUB_SECRET_SETUP.md) - **Base64 URL included!**
 - **Quick Start**: [QUICK_START.md](QUICK_START.md) - Fix the build in 3 steps!
-- **For GitHub Actions**: See [KEYSTORE_BASE64_INSTRUCTIONS.md](KEYSTORE_BASE64_INSTRUCTIONS.md) - detailed setup
 - **For local builds**: Create `android/key.properties` with your keystore passwords
 - **What Changed**: [FIX_SUMMARY.md](FIX_SUMMARY.md) - complete fix documentation
+- **Detailed Guide**: [KEYSTORE_BASE64_INSTRUCTIONS.md](KEYSTORE_BASE64_INSTRUCTIONS.md)
+
+**Base64 Direct Link:** https://github.com/iotserver24/Flutterrrr/raw/copilot/decode-save-keystore/keystore_base64_clean.txt
 
 Quick setup script: `./scripts/encode-keystore.sh` (Linux/macOS) or `.\scripts\encode-keystore.ps1` (Windows)
 
