@@ -76,6 +76,60 @@ class _ChatInputState extends State<ChatInput> {
     }
   }
 
+  Future<void> _pickImageFromCamera() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        // Read the image file and convert to base64
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImage = image;
+          _imageBase64 = base64Encode(bytes);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to take photo: $e')),
+        );
+      }
+    }
+  }
+
+  void _showFilePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImageFromCamera();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _removeImage() {
     setState(() {
       _selectedImage = null;
@@ -165,8 +219,8 @@ class _ChatInputState extends State<ChatInput> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.image, color: Colors.white70),
-                      onPressed: widget.isLoading ? null : _pickImage,
+                      icon: const Icon(Icons.add_photo_alternate, color: Colors.white70),
+                      onPressed: widget.isLoading ? null : _showFilePickerOptions,
                       tooltip: 'Attach image',
                     ),
                   ),
