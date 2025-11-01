@@ -471,9 +471,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ];
                               }
                               return chatProvider.availableModels.map((model) {
-                                final isSelected = model.id == chatProvider.selectedModel;
+                                final isSelected = model.name == chatProvider.selectedModel;
                                 return PopupMenuItem<String>(
-                                  value: model.id,
+                                  value: model.name,
                                   child: Row(
                                     children: [
                                       if (isSelected)
@@ -650,6 +650,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   content: chatProvider.streamingContent,
                                   timestamp: DateTime.now(),
                                   webSearchUsed: false,
+                                  chatId: chatProvider.currentChat?.id ?? 0,
                                 ),
                               ),
                             );
