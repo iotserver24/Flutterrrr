@@ -7,6 +7,8 @@ class Message {
   final int chatId;
   final String? imageBase64; // Base64 encoded image data for vision models
   final String? imagePath; // Local file path for displaying image
+  final String? thinkingContent; // Content of AI thinking process
+  final bool isThinking; // Whether AI is in thinking mode
 
   Message({
     this.id,
@@ -17,6 +19,8 @@ class Message {
     required this.chatId,
     this.imageBase64,
     this.imagePath,
+    this.thinkingContent,
+    this.isThinking = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +33,8 @@ class Message {
       'chatId': chatId,
       'imageBase64': imageBase64,
       'imagePath': imagePath,
+      'thinkingContent': thinkingContent,
+      'isThinking': isThinking ? 1 : 0,
     };
   }
 
@@ -42,6 +48,8 @@ class Message {
       chatId: map['chatId'],
       imageBase64: map['imageBase64'],
       imagePath: map['imagePath'],
+      thinkingContent: map['thinkingContent'],
+      isThinking: map['isThinking'] == 1,
     );
   }
 

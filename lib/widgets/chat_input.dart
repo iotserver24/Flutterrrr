@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 
 class ChatInput extends StatefulWidget {
-  final Function(String, {String? imageBase64, String? imagePath}) onSendMessage;
+  final Function(String, {String? imageBase64, String? imagePath, bool webSearch}) onSendMessage;
   final bool isLoading;
   final bool supportsVision;
 
@@ -27,6 +27,7 @@ class _ChatInputState extends State<ChatInput> {
   bool _hasText = false;
   XFile? _selectedImage;
   String? _imageBase64;
+  bool _webSearchEnabled = false;
   
   bool get _isDesktop {
     return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -88,6 +89,7 @@ class _ChatInputState extends State<ChatInput> {
         _controller.text.trim(),
         imageBase64: _imageBase64,
         imagePath: _selectedImage?.path,
+        webSearch: _webSearchEnabled,
       );
       _controller.clear();
       setState(() {
@@ -168,6 +170,32 @@ class _ChatInputState extends State<ChatInput> {
                       tooltip: 'Attach image',
                     ),
                   ),
+                // Web search toggle button
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: _webSearchEnabled 
+                        ? const Color(0xFF3B82F6).withOpacity(0.3)
+                        : const Color(0xFF1A1A1A),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.search,
+                      color: _webSearchEnabled 
+                          ? const Color(0xFF3B82F6)
+                          : Colors.white70,
+                    ),
+                    onPressed: widget.isLoading ? null : () {
+                      setState(() {
+                        _webSearchEnabled = !_webSearchEnabled;
+                      });
+                    },
+                    tooltip: _webSearchEnabled 
+                        ? 'Web search enabled' 
+                        : 'Enable web search',
+                  ),
+                ),
                 Expanded(
                   child: RawKeyboardListener(
                     focusNode: FocusNode(), // Temporary focus node for keyboard listener

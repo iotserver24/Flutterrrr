@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../providers/theme_provider.dart';
+import '../providers/theme_provider.dart' show ThemeProvider, AppTheme;
 import '../providers/chat_provider.dart';
 import '../providers/settings_provider.dart';
 
@@ -275,14 +275,117 @@ class _SettingsScreenState extends State<SettingsScreen> {
             [
               Consumer<ThemeProvider>(
                 builder: (context, themeProvider, child) {
-                  return SwitchListTile(
-                    title: const Text('Dark Mode'),
-                    subtitle: const Text('Toggle dark/light theme'),
-                    value: themeProvider.isDarkMode,
-                    onChanged: (value) {
-                      themeProvider.toggleTheme();
-                    },
-                    activeColor: const Color(0xFF3B82F6),
+                  return Column(
+                    children: [
+                      ListTile(
+                        title: const Text('Theme'),
+                        subtitle: Text(_getThemeName(themeProvider.currentTheme)),
+                        leading: const Icon(Icons.palette),
+                        onTap: () {
+                          _showThemePickerDialog(context);
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+          const Divider(),
+          _buildSection(
+            context,
+            'Advanced AI Settings',
+            [
+              Consumer<SettingsProvider>(
+                builder: (context, settingsProvider, child) {
+                  return Column(
+                    children: [
+                      ListTile(
+                        title: const Text('Temperature'),
+                        subtitle: Text('${settingsProvider.temperature.toStringAsFixed(2)} - Controls randomness'),
+                        trailing: SizedBox(
+                          width: 200,
+                          child: Slider(
+                            value: settingsProvider.temperature,
+                            min: 0.0,
+                            max: 2.0,
+                            divisions: 20,
+                            label: settingsProvider.temperature.toStringAsFixed(2),
+                            onChanged: (value) {
+                              settingsProvider.setTemperature(value);
+                            },
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        title: const Text('Max Tokens'),
+                        subtitle: Text('${settingsProvider.maxTokens} - Maximum response length'),
+                        trailing: SizedBox(
+                          width: 200,
+                          child: Slider(
+                            value: settingsProvider.maxTokens.toDouble(),
+                            min: 256,
+                            max: 8192,
+                            divisions: 31,
+                            label: settingsProvider.maxTokens.toString(),
+                            onChanged: (value) {
+                              settingsProvider.setMaxTokens(value.toInt());
+                            },
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        title: const Text('Top P'),
+                        subtitle: Text('${settingsProvider.topP.toStringAsFixed(2)} - Nucleus sampling'),
+                        trailing: SizedBox(
+                          width: 200,
+                          child: Slider(
+                            value: settingsProvider.topP,
+                            min: 0.0,
+                            max: 1.0,
+                            divisions: 20,
+                            label: settingsProvider.topP.toStringAsFixed(2),
+                            onChanged: (value) {
+                              settingsProvider.setTopP(value);
+                            },
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        title: const Text('Frequency Penalty'),
+                        subtitle: Text('${settingsProvider.frequencyPenalty.toStringAsFixed(2)} - Reduces repetition'),
+                        trailing: SizedBox(
+                          width: 200,
+                          child: Slider(
+                            value: settingsProvider.frequencyPenalty,
+                            min: 0.0,
+                            max: 2.0,
+                            divisions: 20,
+                            label: settingsProvider.frequencyPenalty.toStringAsFixed(2),
+                            onChanged: (value) {
+                              settingsProvider.setFrequencyPenalty(value);
+                            },
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        title: const Text('Presence Penalty'),
+                        subtitle: Text('${settingsProvider.presencePenalty.toStringAsFixed(2)} - Encourages new topics'),
+                        trailing: SizedBox(
+                          width: 200,
+                          child: Slider(
+                            value: settingsProvider.presencePenalty,
+                            min: 0.0,
+                            max: 2.0,
+                            divisions: 20,
+                            label: settingsProvider.presencePenalty.toStringAsFixed(2),
+                            onChanged: (value) {
+                              settingsProvider.setPresencePenalty(value);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -373,6 +476,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         ...children,
       ],
+    );
+  }
+
+  String _getThemeName(AppTheme theme) {
+    switch (theme) {
+      case AppTheme.dark:
+        return 'Dark Theme';
+      case AppTheme.light:
+        return 'Light Theme';
+      case AppTheme.blue:
+        return 'Blue Ocean Theme';
+      case AppTheme.purple:
+        return 'Purple Galaxy Theme';
+      case AppTheme.green:
+        return 'Forest Green Theme';
+    }
+  }
+
+  void _showThemePickerDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Select Theme'),
+          content: SingleChildScrollView(
+            child: Consumer<ThemeProvider>(
+              builder: (context, themeProvider, child) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: AppTheme.values.map((theme) {
+                    final isSelected = themeProvider.currentTheme == theme;
+                    return RadioListTile<AppTheme>(
+                      title: Text(_getThemeName(theme)),
+                      value: theme,
+                      groupValue: themeProvider.currentTheme,
+                      onChanged: (AppTheme? value) {
+                        if (value != null) {
+                          themeProvider.setTheme(value);
+                          Navigator.pop(dialogContext);
+                        }
+                      },
+                      activeColor: Theme.of(context).colorScheme.primary,
+                      selected: isSelected,
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
