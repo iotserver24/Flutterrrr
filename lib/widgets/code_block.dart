@@ -113,7 +113,6 @@ class _CodeBlockState extends State<CodeBlock> {
 
       // Execute code - write to file and execute to avoid shell injection
       String command;
-      final lang = widget.language?.toLowerCase() ?? '';
       
       if (lang == 'python' || lang == 'py') {
         // Write Python code to file and execute
