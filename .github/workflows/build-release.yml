@@ -117,7 +117,7 @@ jobs:
 
       - name: Build Windows MSIX
         run: |
-          flutter pub run msix:create --certificate-path ${{ env.CERT_PATH }} --certificate-password ${{ env.CERT_PASSWORD }} --version ${{ inputs.version }}.${{ inputs.build_number }}
+          flutter pub run msix:create --certificate-path ${{ env.CERT_PATH }} --certificate-password ${{ env.CERT_PASSWORD }} --install-certificate false --version ${{ inputs.version }}.${{ inputs.build_number }}
       
       - name: Rename Windows artifacts
         run: |
