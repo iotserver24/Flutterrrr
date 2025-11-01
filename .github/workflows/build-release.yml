@@ -145,6 +145,8 @@ jobs:
           retention-days: 1
 
   # macOS builds - Matrix for x64 (Intel) and arm64 (Apple Silicon)
+  # Note: Flutter creates universal binaries by default, but we maintain separate
+  # artifact names for x64 and arm64 for user clarity and download preferences
   build-macos:
     runs-on: macos-latest
     permissions:
