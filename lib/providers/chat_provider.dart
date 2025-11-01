@@ -302,7 +302,7 @@ You have access to a long-term memory system. When you learn important informati
 To save a memory, use this format in your response: <save memory>brief important fact about user</save memory>
 The memory should be:
 - A single, clear, important fact about the user
-- Maximum 150 characters
+- Maximum 200 characters
 - Relevant for future conversations
 - When you use the tag, it will be shown to the user with a confirmation that the memory was saved
 Example: If user says "I'm a Python developer working on ML projects", you can respond normally and include: <save memory>Python developer specializing in ML projects</save memory>
