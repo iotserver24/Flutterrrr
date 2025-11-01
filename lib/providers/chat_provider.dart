@@ -120,7 +120,7 @@ class ChatProvider extends ChangeNotifier {
     );
     _messages = [];
     await _loadChats();
-    notifyListeners();
+    // Don't notify listeners here - let sendMessage handle the UI update
   }
 
   Future<void> selectChat(Chat chat) async {
@@ -146,8 +146,18 @@ class ChatProvider extends ChangeNotifier {
       webSearchUsed: webSearch,
     );
 
-    await _databaseService.insertMessage(userMessage);
-    _messages.add(userMessage);
+    final insertedId = await _databaseService.insertMessage(userMessage);
+    final messageWithId = Message(
+      id: insertedId,
+      role: userMessage.role,
+      content: userMessage.content,
+      timestamp: userMessage.timestamp,
+      webSearchUsed: userMessage.webSearchUsed,
+      chatId: userMessage.chatId,
+      imageBase64: userMessage.imageBase64,
+      imagePath: userMessage.imagePath,
+    );
+    _messages.add(messageWithId);
     
     // Update chat title if it's the first message
     if (_messages.length == 1) {
@@ -193,8 +203,16 @@ class ChatProvider extends ChangeNotifier {
         chatId: _currentChat!.id!,
       );
 
-      await _databaseService.insertMessage(assistantMessage);
-      _messages.add(assistantMessage);
+      final assistantInsertedId = await _databaseService.insertMessage(assistantMessage);
+      final assistantMessageWithId = Message(
+        id: assistantInsertedId,
+        role: assistantMessage.role,
+        content: assistantMessage.content,
+        timestamp: assistantMessage.timestamp,
+        webSearchUsed: assistantMessage.webSearchUsed,
+        chatId: assistantMessage.chatId,
+      );
+      _messages.add(assistantMessageWithId);
 
       // Update chat's updatedAt timestamp
       _currentChat = Chat(
