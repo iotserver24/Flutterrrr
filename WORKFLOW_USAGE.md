@@ -422,4 +422,4 @@ For issues or questions:
 
 ## Legacy Workflow
 
-The old workflow is preserved as `build-release-legacy.yml` for reference. The new multi-platform workflow is now the default.
+The previous workflow is preserved as `build-release-legacy.yml` for historical reference only. It builds Android APK and Windows MSIX/EXE only. **This legacy workflow is not maintained and may be removed in future versions.** Use the new multi-platform `build-release.yml` workflow for all builds.

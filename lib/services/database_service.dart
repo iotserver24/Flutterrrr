@@ -15,8 +15,13 @@ class DatabaseService {
     
     // Initialize FFI for desktop platforms
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
+      try {
+        sqfliteFfiInit();
+        databaseFactory = databaseFactoryFfi;
+      } catch (e) {
+        throw Exception('Failed to initialize desktop database: $e. '
+            'Ensure sqflite_common_ffi is properly installed and platform libraries are available.');
+      }
     }
     _initialized = true;
   }

@@ -74,7 +74,7 @@ jobs:
     
     strategy:
       matrix:
-        arch: [x64]  # Note: arm64 and x86 have limited support in Flutter Windows
+        arch: [x64]  # Note: arm64 support is experimental in Flutter Windows, x86 is deprecated. GitHub runners only provide x64.
     
     steps:
       - name: Checkout code
@@ -227,7 +227,7 @@ jobs:
     
     strategy:
       matrix:
-        arch: [x64]  # arm64 and x86 require cross-compilation setup
+        arch: [x64]  # arm64 and x86 require cross-compilation toolchains (gcc-aarch64-linux-gnu, gcc-i686-linux-gnu) not included by default
     
     steps:
       - name: Checkout code
@@ -311,7 +311,10 @@ jobs:
           chmod +x AppDir/AppRun
           
           # Build AppImage
-          ARCH=${{ matrix.arch }} appimagetool AppDir "artifacts/linux-${{ matrix.arch }}/xibe-chat-linux-${{ matrix.arch }}-v${{ inputs.version }}-${{ inputs.build_number }}.AppImage" || echo "AppImage creation failed, continuing..."
+          ARCH=${{ matrix.arch }} appimagetool AppDir "artifacts/linux-${{ matrix.arch }}/xibe-chat-linux-${{ matrix.arch }}-v${{ inputs.version }}-${{ inputs.build_number }}.AppImage" || {
+            echo "::warning::AppImage creation failed. This may be due to missing desktop integration files or appimagetool issues."
+            echo "DEB and TAR.GZ packages will still be available."
+          }
 
       - name: Create DEB package
         run: |
