@@ -157,6 +157,60 @@ jobs:
         run: |
           flutter pub run msix:create --certificate-path ${{ env.CERT_PATH }} --certificate-password ${{ env.CERT_PASSWORD }} --install-certificate false --version ${{ inputs.version }}.${{ inputs.build_number }}
 
+      - name: Install NSIS
+        run: |
+          choco install nsis -y
+        shell: powershell
+
+      - name: Create NSIS installer script
+        run: |
+          $nsisScript = @"
+          !include "MUI2.nsh"
+          !include "x64.nsh"
+          
+          Name "Xibe Chat v${{ inputs.version }}"
+          OutFile "xibe-chat-installer-v${{ inputs.version }}-${{ inputs.build_number }}.exe"
+          InstallDir "`$PROGRAMFILES\XibeChat"
+          InstallDirRegKey HKCU "Software\XibeChat" "Install_Dir"
+          
+          !insertmacro MUI_PAGE_WELCOME
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_PAGE_FINISH
+          
+          !insertmacro MUI_LANGUAGE "English"
+          
+          Section "Install"
+            SetOutPath "`$INSTDIR"
+            File /r "build\windows\x64\runner\Release\*.*"
+            CreateDirectory "`$SMPROGRAMS\XibeChat"
+            CreateShortcut "`$SMPROGRAMS\XibeChat\Xibe Chat.lnk" "`$INSTDIR\xibe_chat.exe"
+            CreateShortcut "`$DESKTOP\Xibe Chat.lnk" "`$INSTDIR\xibe_chat.exe"
+            WriteRegStr HKCU "Software\XibeChat" "Install_Dir" "`$INSTDIR"
+          SectionEnd
+          
+          Section "Uninstall"
+            RMDir /r "`$INSTDIR"
+            RMDir /r "`$SMPROGRAMS\XibeChat"
+            Delete "`$DESKTOP\Xibe Chat.lnk"
+            DeleteRegKey HKCU "Software\XibeChat"
+          SectionEnd
+          "@
+          $nsisScript | Out-File -FilePath "xibe-chat-installer.nsi" -Encoding UTF8
+        shell: powershell
+
+      - name: Build NSIS installer
+        run: |
+          $nsisPath = "C:\Program Files (x86)\NSIS\makensis.exe"
+          if (Test-Path $nsisPath) {
+            & $nsisPath xibe-chat-installer.nsi
+            Write-Host "✅ NSIS installer created"
+          } else {
+            Write-Host "❌ NSIS not found at $nsisPath"
+            exit 1
+          }
+        shell: powershell
+
       - name: Package Windows artifacts
         run: |
           New-Item -ItemType Directory -Force -Path "artifacts\windows-${{ matrix.arch }}"
@@ -205,6 +259,15 @@ jobs:
             Write-Host "✅ Copied MSIX installer"
           } else {
             Write-Host "⚠️  MSIX file not found"
+          }
+          
+          # Copy NSIS installer
+          $nsisInstaller = "xibe-chat-installer-v${{ inputs.version }}-${{ inputs.build_number }}.exe"
+          if (Test-Path $nsisInstaller) {
+            Copy-Item -Path $nsisInstaller -Destination "artifacts\windows-${{ matrix.arch }}\xibe-chat-installer-${{ matrix.arch }}-v${{ inputs.version }}-${{ inputs.build_number }}.exe" -Force
+            Write-Host "✅ Copied NSIS installer"
+          } else {
+            Write-Host "⚠️  NSIS installer not found"
           }
         shell: powershell
 
@@ -511,7 +574,7 @@ jobs:
           mkdir -p release-files
           
           # Copy all artifacts to release-files
-          find artifacts -type f \( -name "*.apk" -o -name "*.aab" -o -name "*.zip" -o -name "*.msix" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.tar.gz" -o -name "*.ipa" \) -exec cp {} release-files/ \;
+          find artifacts -type f \( -name "*.apk" -o -name "*.aab" -o -name "*.zip" -o -name "*.msix" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.tar.gz" -o -name "*.ipa" -o -name "*.exe" \) -exec cp {} release-files/ \;
           
           echo ""
           echo "📦 Release files ready:"
@@ -570,8 +633,12 @@ jobs:
             - `xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.aab` - App Bundle (for Play Store)
             
             #### 💻 **Windows**
+            - `xibe-chat-installer-x64-v${{ inputs.version }}-${{ inputs.build_number }}.exe` - NSIS installer (recommended)
+            - `xibe-chat-installer-arm64-v${{ inputs.version }}-${{ inputs.build_number }}.exe` - NSIS installer for ARM64
             - `xibe-chat-windows-x64-v${{ inputs.version }}-${{ inputs.build_number }}.msix` - Windows Store installer
+            - `xibe-chat-windows-arm64-v${{ inputs.version }}-${{ inputs.build_number }}.msix` - Windows Store installer (ARM64)
             - `xibe-chat-windows-x64-v${{ inputs.version }}-${{ inputs.build_number }}.zip` - Portable version
+            - `xibe-chat-windows-arm64-v${{ inputs.version }}-${{ inputs.build_number }}.zip` - Portable version (ARM64)
             
             #### 🍎 **macOS**
             - `xibe-chat-macos-x64-v${{ inputs.version }}-${{ inputs.build_number }}.dmg` - Intel Mac installer
@@ -595,6 +662,12 @@ jobs:
             1. Download the APK file
             2. Enable "Install from Unknown Sources" in Settings
             3. Tap the APK to install
+            
+            #### Windows NSIS Installer (Recommended)
+            1. Download the `.exe` installer file for your architecture (x64 or arm64)
+            2. Double-click to run the installer
+            3. Follow the installation wizard
+            4. Desktop and Start Menu shortcuts will be created automatically
             
             #### Windows MSIX
             1. Download the MSIX file
