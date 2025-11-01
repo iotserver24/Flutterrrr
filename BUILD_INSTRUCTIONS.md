@@ -133,15 +133,12 @@ flutter config --enable-macos-desktop
 flutter create --platforms=macos .
 ```
 
-#### Build for Intel (x64)
+#### Build macOS app (Universal Binary)
 ```bash
-flutter build macos --release --target-platform darwin-x64
+flutter build macos --release
 ```
 
-#### Build for Apple Silicon (arm64)
-```bash
-flutter build macos --release --target-platform darwin-arm64
-```
+**Note**: Flutter automatically creates universal binaries for macOS that support both Intel (x64) and Apple Silicon (arm64). The `--target-platform` flag is not supported for macOS builds.
 
 Output: `build/macos/Build/Products/Release/xibe_chat.app`
 
@@ -477,9 +474,9 @@ The app automatically detects the platform and uses the appropriate database imp
 
 **Solution**:
 ```bash
-# Ensure you're using the right target platform
-flutter build macos --target-platform darwin-arm64  # Apple Silicon
-flutter build macos --target-platform darwin-x64    # Intel
+# Flutter automatically builds universal binaries for macOS
+# No need to specify architecture - both Intel and Apple Silicon are supported
+flutter build macos --release
 ```
 
 ### Memory Issues
