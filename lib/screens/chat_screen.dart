@@ -223,42 +223,85 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                               );
                             },
-                            child: Container(
-                              margin: const EdgeInsets.all(16),
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF3B82F6).withOpacity(0.3),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    chatProvider.getGreeting(),
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                  Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF3B82F6).withOpacity(0.3),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          chatProvider.getGreeting(),
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          'How can I help you today?',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 16),
                                   const Text(
-                                    'How\'s your day going?',
+                                    'Try asking me about:',
                                     style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey,
                                     ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _buildSuggestionChip(
+                                        context,
+                                        '💡 Explain a concept',
+                                        () => chatProvider.sendMessage('Explain quantum computing in simple terms'),
+                                      ),
+                                      _buildSuggestionChip(
+                                        context,
+                                        '✍️ Write something',
+                                        () => chatProvider.sendMessage('Write a creative short story'),
+                                      ),
+                                      _buildSuggestionChip(
+                                        context,
+                                        '🔍 Research help',
+                                        () => chatProvider.sendMessage('Help me research renewable energy'),
+                                      ),
+                                      _buildSuggestionChip(
+                                        context,
+                                        '💻 Code assistance',
+                                        () => chatProvider.sendMessage('Help me debug my Python code'),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -391,6 +434,45 @@ class _ChatScreenState extends State<ChatScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionChip(BuildContext context, String label, VoidCallback onTap) {
+    return TweenAnimationBuilder(
+      duration: const Duration(milliseconds: 400),
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      builder: (context, double value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.scale(
+            scale: 0.8 + (0.2 * value),
+            child: child,
+          ),
+        );
+      },
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.1),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -599,48 +681,89 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (context, index) {
                           if (showGreeting && index == 0) {
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: Container(
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Theme.of(context).primaryColor,
-                                      Theme.of(context).primaryColor.withOpacity(0.8),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
+                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(24),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Theme.of(context).primaryColor,
+                                          Theme.of(context).primaryColor.withOpacity(0.8),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Theme.of(context).primaryColor.withOpacity(0.3),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          chatProvider.getGreeting(),
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          'How can I help you today?',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Theme.of(context).primaryColor.withOpacity(0.3),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Try asking me about:',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey,
                                     ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      chatProvider.getGreeting(),
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _buildSuggestionChip(
+                                        context,
+                                        '💡 Explain a concept',
+                                        () => chatProvider.sendMessage('Explain quantum computing in simple terms'),
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    const Text(
-                                      'How\'s your day going?',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.white70,
+                                      _buildSuggestionChip(
+                                        context,
+                                        '✍️ Write something',
+                                        () => chatProvider.sendMessage('Write a creative short story'),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                      _buildSuggestionChip(
+                                        context,
+                                        '🔍 Research help',
+                                        () => chatProvider.sendMessage('Help me research renewable energy'),
+                                      ),
+                                      _buildSuggestionChip(
+                                        context,
+                                        '💻 Code assistance',
+                                        () => chatProvider.sendMessage('Help me debug my Python code'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             );
                           }
