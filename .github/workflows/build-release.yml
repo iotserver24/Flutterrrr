@@ -57,16 +57,27 @@ jobs:
         run: |
           # Decode and save keystore
           if [ -n "$KEYSTORE_BASE64" ]; then
-            # Remove all whitespace and newlines from base64 string
-            echo "$KEYSTORE_BASE64" | tr -d '\n\r\t ' | base64 --decode > android/app/xibe-chat-app.jks
+            # Remove all whitespace and newlines from base64 string, then decode
+            # Using printf instead of echo to avoid adding extra newlines
+            printf '%s' "$KEYSTORE_BASE64" | tr -d '\n\r\t ' | base64 -d > android/app/xibe-chat-app.jks
+            
+            # Verify the keystore was created successfully
+            if [ ! -f android/app/xibe-chat-app.jks ]; then
+              echo "❌ Failed to create keystore file"
+              exit 1
+            fi
+            
             # Set secure permissions on keystore
             chmod 600 android/app/xibe-chat-app.jks
+            
             # Create key.properties file
             echo "storePassword=$KEYSTORE_PASSWORD" > android/key.properties
             echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
             echo "keyAlias=${KEY_ALIAS:-xibe_chat_key}" >> android/key.properties
             echo "storeFile=xibe-chat-app.jks" >> android/key.properties
+            
             echo "✅ Release signing configured"
+            echo "📦 Keystore size: $(wc -c < android/app/xibe-chat-app.jks) bytes"
           else
             echo "⚠️  No signing secrets found, using debug signing"
           fi
