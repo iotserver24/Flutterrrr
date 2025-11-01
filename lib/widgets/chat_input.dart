@@ -209,7 +209,7 @@ class _ChatInputState extends State<ChatInput> {
                 subtitle: const Text('Configure Model Context Protocol servers'),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(context, '/settings');
+                  Navigator.pushNamed(context, '/mcp-servers');
                 },
               ),
               const SizedBox(height: 8),

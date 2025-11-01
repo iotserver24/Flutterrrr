@@ -150,17 +150,140 @@ class _McpServersScreenState extends State<McpServersScreen> {
       final jsonString = await _configService.exportConfiguration();
       await Clipboard.setData(ClipboardData(text: jsonString));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Configuration copied to clipboard')),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Configuration Exported'),
+              ],
+            ),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Your MCP configuration has been copied to the clipboard!'),
+                SizedBox(height: 12),
+                Text(
+                  'You can now paste it into other apps or save it to a file.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error exporting configuration: $e')),
+          SnackBar(
+            content: Text('Error exporting configuration: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
+  }
+
+  Future<void> _showImportDialog() async {
+    final TextEditingController importController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.file_download, color: Color(0xFF3B82F6)),
+            SizedBox(width: 8),
+            Text('Import Configuration'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Paste your MCP configuration JSON here:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: importController,
+              maxLines: 10,
+              decoration: InputDecoration(
+                hintText: '{\n  "mcpServers": {\n    ...\n  }\n}',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade900,
+              ),
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'This will replace your current configuration.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final jsonString = importController.text.trim();
+              if (jsonString.isNotEmpty) {
+                final success = await _configService.importConfiguration(jsonString);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  if (success) {
+                    await _loadServers();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Configuration imported successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to import configuration. Check JSON format.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showConfigFileLocation() async {
@@ -169,10 +292,49 @@ class _McpServersScreenState extends State<McpServersScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Configuration File Location'),
-          content: SelectableText(
-            filePath,
-            style: const TextStyle(fontFamily: 'monospace'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.folder_open, color: Color(0xFF3B82F6)),
+              SizedBox(width: 8),
+              Text('Configuration File'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'MCP servers are stored in a JSON configuration file:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade900,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade700),
+                ),
+                child: SelectableText(
+                  filePath,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You can edit this file directly or use the app interface.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -184,7 +346,10 @@ class _McpServersScreenState extends State<McpServersScreen> {
                 await Clipboard.setData(ClipboardData(text: filePath));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Path copied to clipboard')),
+                    const SnackBar(
+                      content: Text('Path copied to clipboard'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
                   );
                 }
               },
@@ -202,15 +367,54 @@ class _McpServersScreenState extends State<McpServersScreen> {
       appBar: AppBar(
         title: const Text('MCP Servers'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.folder_open),
-            onPressed: _showConfigFileLocation,
-            tooltip: 'Show Config File Location',
-          ),
-          IconButton(
-            icon: const Icon(Icons.file_copy),
-            onPressed: _exportConfiguration,
-            tooltip: 'Export Configuration',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More options',
+            onSelected: (value) {
+              switch (value) {
+                case 'location':
+                  _showConfigFileLocation();
+                  break;
+                case 'export':
+                  _exportConfiguration();
+                  break;
+                case 'import':
+                  _showImportDialog();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'location',
+                child: Row(
+                  children: [
+                    Icon(Icons.folder_open),
+                    SizedBox(width: 8),
+                    Text('Show File Location'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_upload),
+                    SizedBox(width: 8),
+                    Text('Export Configuration'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'import',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download),
+                    SizedBox(width: 8),
+                    Text('Import Configuration'),
+                  ],
+                ),
+              ),
+            ],
           ),
           IconButton(
             icon: const Icon(Icons.add),
