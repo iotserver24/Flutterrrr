@@ -2,94 +2,56 @@
 
 ## Overview
 
-By default, the app uses debug signing for ease of development. For production releases distributed outside of Google Play, you should create a proper release signing configuration.
+✅ **The app is now configured with release signing!**
 
-## Creating a Keystore
+A keystore has been created and the build configuration has been updated to support signed releases. The keystore file is located at `android/app/xibe-chat-app.jks` and is automatically excluded from Git.
 
-### 1. Generate a Keystore File
+## Keystore Details
 
-```bash
-keytool -genkey -v -keystore ~/xibe-chat-release.jks \
-  -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias xibechat
-```
+The existing keystore was created with these specifications:
 
-You'll be prompted for:
-- Keystore password (remember this!)
-- Key password (remember this!)
-- Your name
-- Organization details
-- Country code
+- **File**: `android/app/xibe-chat-app.jks`
+- **Key Alias**: `R3AP3Redit`
+- **Algorithm**: RSA 2048-bit
+- **Validity**: 10,000 days
+- **Distinguished Name**:
+  - CN: xibe-chat-app
+  - OU: R3AP3Redit
+  - O: R3AP3Redit
+  - L: Karnataka
+  - ST: Karnataka
+  - C: IN
 
-**Important**: Keep your keystore file and passwords secure. If you lose them, you cannot update your app!
-
-### 2. Store Keystore Securely
-
-Move the keystore to a secure location:
-```bash
-mkdir -p ~/keystores
-mv ~/xibe-chat-release.jks ~/keystores/
-chmod 600 ~/keystores/xibe-chat-release.jks
-```
-
-## Configure App Signing
+## Local Development Setup
 
 ### 1. Create key.properties File
 
-Create `android/key.properties`:
+Create `android/key.properties` (this file is gitignored):
 
 ```properties
-storePassword=your_keystore_password
-keyPassword=your_key_password
-keyAlias=xibechat
-storeFile=/path/to/your/keystores/xibe-chat-release.jks
+storePassword=<YOUR_KEYSTORE_PASSWORD>
+keyPassword=<YOUR_KEY_PASSWORD>
+keyAlias=R3AP3Redit
+storeFile=xibe-chat-app.jks
 ```
 
-**Important**: Add `android/key.properties` to `.gitignore` to avoid committing secrets!
+You can use `android/key.properties.example` as a template.
 
-### 2. Update app/build.gradle
+### 2. Build Configuration (Already Done ✅)
 
-Replace the release signing configuration in `android/app/build.gradle`:
+The `android/app/build.gradle` has been updated to:
+- Load signing configuration from `key.properties`
+- Use release signing when `key.properties` exists
+- Fall back to debug signing if `key.properties` is not present
 
-```gradle
-def keystoreProperties = new Properties()
-def keystorePropertiesFile = rootProject.file('key.properties')
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
+### 3. Gitignore (Already Done ✅)
 
-android {
-    // ... other configurations ...
-    
-    signingConfigs {
-        release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-            storePassword keystoreProperties['storePassword']
-        }
-    }
-    
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
-}
-```
-
-### 3. Update .gitignore
-
-Ensure these lines are in your `.gitignore`:
-
-```gitignore
-# Signing
-android/key.properties
-*.jks
-*.keystore
-```
+The following are now excluded from Git:
+- `android/key.properties`
+- `android/app/*.jks`
+- `android/app/*.keystore`
+- `*.jks`
+- `*.keystore`
 
 ## Building Signed APK
 
@@ -125,39 +87,34 @@ The bundle will be at:
 build/app/outputs/bundle/release/app-release.aab
 ```
 
-## GitHub Actions Integration
+## GitHub Actions Integration (Already Done ✅)
 
-### 1. Add Secrets to GitHub
+The GitHub Actions workflow has been updated to support signed builds!
 
-Go to your repository settings → Secrets and variables → Actions, and add:
+### Required GitHub Secrets
 
-- `KEYSTORE_BASE64`: Base64-encoded keystore file
-- `KEYSTORE_PASSWORD`: Your keystore password
-- `KEY_PASSWORD`: Your key password
-- `KEY_ALIAS`: Your key alias (e.g., "xibechat")
+Add these secrets to your repository (Settings → Secrets and variables → Actions):
 
-To encode your keystore:
-```bash
-base64 -i ~/keystores/xibe-chat-release.jks | pbcopy  # macOS
-base64 -i ~/keystores/xibe-chat-release.jks           # Linux
-```
+1. **KEYSTORE_BASE64** - Base64-encoded keystore file
+2. **KEYSTORE_PASSWORD** - Your keystore password  
+3. **KEY_PASSWORD** - Your key password
+4. **KEY_ALIAS** - `R3AP3Redit`
 
-### 2. Update Workflow
+### Detailed Instructions
 
-Modify `.github/workflows/build-release.yml`:
+See [GITHUB_ACTIONS_SECRETS.md](GITHUB_ACTIONS_SECRETS.md) for complete step-by-step instructions on:
+- How to encode your keystore to base64
+- How to add secrets to GitHub
+- How to verify signing works
+- Troubleshooting common issues
 
-```yaml
-- name: Setup signing
-  run: |
-    echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
-    echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
-    echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-    echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-    echo "storeFile=../app/keystore.jks" >> android/key.properties
+### How It Works
 
-- name: Build APK
-  run: flutter build apk --release
-```
+The workflow automatically:
+1. Decodes the base64 keystore from secrets
+2. Creates the `key.properties` file with your credentials
+3. Builds signed APK and AAB files
+4. Falls back to debug signing if secrets are not configured
 
 ## Security Best Practices
 
