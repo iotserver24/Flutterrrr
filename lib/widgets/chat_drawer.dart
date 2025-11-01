@@ -9,41 +9,61 @@ class ChatDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: const Color(0xFF0D0D0D),
-      child: SafeArea(
-        child: Column(
-          children: [
+    final screenWidth = MediaQuery.of(context).size.width;
+    final drawerWidth = screenWidth > 600 ? 320.0 : 280.0;
+    
+    return SizedBox(
+      width: drawerWidth,
+      child: Drawer(
+        backgroundColor: const Color(0xFF0D0D0D),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Xibe Chat',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.settings, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
+                        );
+                      },
+                      tooltip: 'Settings',
+                    ),
+                  ],
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  const Text(
-                    'Xibe Chat',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.settings, color: Colors.white),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: ElevatedButton(
                 onPressed: () {
                   Provider.of<ChatProvider>(context, listen: false)
@@ -52,7 +72,9 @@ class ChatDrawer extends StatelessWidget {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3B82F6),
-                  minimumSize: const Size(double.infinity, 48),
+                  minimumSize: const Size(double.infinity, 52),
+                  elevation: 4,
+                  shadowColor: const Color(0xFF3B82F6).withOpacity(0.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -60,11 +82,15 @@ class ChatDrawer extends StatelessWidget {
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add, color: Colors.white),
+                    Icon(Icons.add_circle_outline, color: Colors.white, size: 24),
                     SizedBox(width: 8),
                     Text(
                       'New Chat',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -108,28 +134,53 @@ class ChatDrawer extends StatelessWidget {
                       return Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 8,
-                          vertical: 2,
+                          vertical: 3,
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? const Color(0xFF1F1F1F)
                               : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
+                          border: isSelected
+                              ? Border.all(
+                                  color: const Color(0xFF3B82F6).withOpacity(0.3),
+                                  width: 1,
+                                )
+                              : null,
                         ),
                         child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF3B82F6).withOpacity(0.2)
+                                  : Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.chat_bubble_outline,
+                              color: isSelected ? const Color(0xFF3B82F6) : Colors.grey,
+                              size: 20,
+                            ),
+                          ),
                           title: Text(
                             chat.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(
                             dateFormat.format(chat.updatedAt),
-                            style: const TextStyle(
-                              color: Colors.grey,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
                               fontSize: 12,
                             ),
                           ),

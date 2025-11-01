@@ -50,6 +50,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 600;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -58,7 +61,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isWideScreen ? 800 : double.infinity,
+          ),
+          child: ListView(
         children: [
           const SizedBox(height: 16),
           _buildSection(
@@ -478,7 +486,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
-        ],
+          ],
+        ),
+        ),
       ),
     );
   }

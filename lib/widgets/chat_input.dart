@@ -105,60 +105,116 @@ class _ChatInputState extends State<ChatInput> {
   void _showAttachmentOptions() {
     showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            if (widget.supportsVision) ...[
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              if (widget.supportsVision) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Image Options',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.photo_library,
+                      color: Color(0xFF3B82F6),
+                    ),
+                  ),
+                  title: const Text('Choose from gallery'),
+                  subtitle: const Text('Pick an image from your device'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage();
+                  },
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Color(0xFF3B82F6),
+                    ),
+                  ),
+                  title: const Text('Take a photo'),
+                  subtitle: const Text('Capture using camera'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImageFromCamera();
+                  },
+                ),
+                const Divider(height: 24),
+              ],
               Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  'Image Options',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'MCP Connections',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
                   ),
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Choose from gallery'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Take a photo'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImageFromCamera();
-                },
-              ),
-              const Divider(),
-            ],
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'MCP Connections',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).primaryColor,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.dns_outlined,
+                    color: Colors.purple,
+                  ),
                 ),
+                title: const Text('Manage MCP Servers'),
+                subtitle: const Text('Configure Model Context Protocol servers'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/settings');
+                },
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Manage MCP Servers'),
-              subtitle: const Text('Configure Model Context Protocol servers'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/settings');
-              },
-            ),
-          ],
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -189,14 +245,20 @@ class _ChatInputState extends State<ChatInput> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 600;
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isWideScreen ? 16 : 8,
+        vertical: isWideScreen ? 12 : 8,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
+            blurRadius: 8,
             offset: const Offset(0, -2),
           ),
         ],
@@ -205,40 +267,61 @@ class _ChatInputState extends State<ChatInput> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Image preview
+            // Image preview with animation
             if (_selectedImage != null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        File(_selectedImage!.path),
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
+              TweenAnimationBuilder(
+                duration: const Duration(milliseconds: 200),
+                tween: Tween<double>(begin: 0.0, end: 1.0),
+                builder: (context, double value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Transform.scale(
+                      scale: 0.9 + (0.1 * value),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF3B82F6).withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          File(_selectedImage!.path),
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Image attached',
-                        style: TextStyle(color: Colors.white70),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Image attached',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white70),
-                      onPressed: _removeImage,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                        onPressed: _removeImage,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Remove image',
+                      ),
+                    ],
+                  ),
                 ),
               ),
             // Input row
@@ -250,9 +333,19 @@ class _ChatInputState extends State<ChatInput> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A1A1A),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white70),
+                    icon: Icon(
+                      Icons.add,
+                      color: widget.isLoading ? Colors.grey : Colors.white70,
+                    ),
                     onPressed: widget.isLoading ? null : _showAttachmentOptions,
                     tooltip: 'Attachments & Options',
                   ),
@@ -306,16 +399,33 @@ class _ChatInputState extends State<ChatInput> {
                       textInputAction: _isDesktop ? TextInputAction.newline : TextInputAction.send,
                       decoration: InputDecoration(
                         hintText: 'Type something',
-                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                        hintStyle: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 15,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
                         ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide(
+                            color: Colors.white.withOpacity(0.1),
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF3B82F6),
+                            width: 2,
+                          ),
+                        ),
                         filled: true,
                         fillColor: const Color(0xFF1A1A1A),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: isWideScreen ? 20 : 16,
+                          vertical: isWideScreen ? 14 : 12,
                         ),
                       ),
                       onSubmitted: (_) {
@@ -333,9 +443,21 @@ class _ChatInputState extends State<ChatInput> {
                         ? const Color(0xFF3B82F6)
                         : Colors.grey.withOpacity(0.3),
                     shape: BoxShape.circle,
+                    boxShadow: (_hasText || _selectedImage != null) && !widget.isLoading
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF3B82F6).withOpacity(0.4),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
+                    icon: Icon(
+                      widget.isLoading ? Icons.hourglass_empty : Icons.send,
+                      color: Colors.white,
+                    ),
                     onPressed: (_hasText || _selectedImage != null) && !widget.isLoading ? _sendMessage : null,
                   ),
                 ),
