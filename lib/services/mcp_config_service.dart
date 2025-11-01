@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import '../models/mcp_config.dart';
@@ -23,7 +24,7 @@ class McpConfigService {
         return McpConfiguration.fromJsonString(jsonString);
       }
     } catch (e) {
-      print('Error loading MCP configuration: $e');
+      developer.log('Error loading MCP configuration: $e', name: 'McpConfigService');
     }
     
     // Return default configuration if file doesn't exist or error occurs
@@ -43,7 +44,7 @@ class McpConfigService {
       await file.writeAsString(prettyJson);
       return true;
     } catch (e) {
-      print('Error saving MCP configuration: $e');
+      developer.log('Error saving MCP configuration: $e', name: 'McpConfigService');
       return false;
     }
   }
@@ -55,7 +56,7 @@ class McpConfigService {
       currentConfig.mcpServers[name] = config;
       return await saveConfiguration(currentConfig);
     } catch (e) {
-      print('Error adding/updating MCP server: $e');
+      developer.log('Error adding/updating MCP server: $e', name: 'McpConfigService');
       return false;
     }
   }
@@ -67,7 +68,7 @@ class McpConfigService {
       currentConfig.mcpServers.remove(name);
       return await saveConfiguration(currentConfig);
     } catch (e) {
-      print('Error removing MCP server: $e');
+      developer.log('Error removing MCP server: $e', name: 'McpConfigService');
       return false;
     }
   }
@@ -90,7 +91,7 @@ class McpConfigService {
       final config = McpConfiguration.fromJsonString(jsonString);
       return await saveConfiguration(config);
     } catch (e) {
-      print('Error importing MCP configuration: $e');
+      developer.log('Error importing MCP configuration: $e', name: 'McpConfigService');
       return false;
     }
   }
@@ -106,7 +107,7 @@ class McpConfigService {
         await saveConfiguration(defaultConfig);
       }
     } catch (e) {
-      print('Error initializing default MCP configuration: $e');
+      developer.log('Error initializing default MCP configuration: $e', name: 'McpConfigService');
     }
   }
 }

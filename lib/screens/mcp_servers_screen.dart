@@ -30,8 +30,11 @@ class _McpServersScreenState extends State<McpServersScreen> {
     final config = await _configService.loadConfiguration();
     setState(() {
       _servers = config.mcpServers;
-      // Initialize all servers as enabled by default
-      _serverStates = {for (var key in _servers.keys) key: true};
+      // Load enabled state from configuration
+      _serverStates = {
+        for (var entry in _servers.entries)
+          entry.key: entry.value.isEnabled
+      };
       _isLoading = false;
     });
   }
@@ -521,9 +524,14 @@ class _McpServersScreenState extends State<McpServersScreen> {
                     ),
                     trailing: Switch(
                       value: isEnabled,
-                      onChanged: (value) {
+                      onChanged: (value) async {
+                        // Update the server config with new enabled state
+                        final updatedConfig = serverConfig.copyWith(isEnabled: value);
+                        await _configService.addOrUpdateServer(serverName, updatedConfig);
+                        
                         setState(() {
                           _serverStates[serverName] = value;
+                          _servers[serverName] = updatedConfig;
                         });
                       },
                     ),

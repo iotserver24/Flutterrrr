@@ -6,6 +6,7 @@ class McpServerConfig {
   final Map<String, String>? env;
   final String? url;
   final Map<String, String>? headers;
+  final bool isEnabled;
 
   McpServerConfig({
     this.command = '',
@@ -13,6 +14,7 @@ class McpServerConfig {
     this.env,
     this.url,
     this.headers,
+    this.isEnabled = true,
   });
 
   Map<String, dynamic> toJson() {
@@ -30,6 +32,7 @@ class McpServerConfig {
         json['headers'] = headers;
       }
     }
+    json['isEnabled'] = isEnabled;
     return json;
   }
 
@@ -40,6 +43,25 @@ class McpServerConfig {
       env: json['env'] != null ? Map<String, String>.from(json['env']) : null,
       url: json['url'],
       headers: json['headers'] != null ? Map<String, String>.from(json['headers']) : null,
+      isEnabled: json['isEnabled'] ?? true,
+    );
+  }
+
+  McpServerConfig copyWith({
+    String? command,
+    List<String>? args,
+    Map<String, String>? env,
+    String? url,
+    Map<String, String>? headers,
+    bool? isEnabled,
+  }) {
+    return McpServerConfig(
+      command: command ?? this.command,
+      args: args ?? this.args,
+      env: env ?? this.env,
+      url: url ?? this.url,
+      headers: headers ?? this.headers,
+      isEnabled: isEnabled ?? this.isEnabled,
     );
   }
 }
@@ -80,7 +102,8 @@ class McpConfiguration {
       mcpServers: {
         'memory': McpServerConfig(
           command: 'npx',
-          args: ['-y', 'mcp-knowledge-graph', '--memory-path', './mcp-memory/'],
+          args: ['-y', 'mcp-knowledge-graph'],
+          // Note: memory-path will be set by the app to app documents directory
         ),
         'browsermcp': McpServerConfig(
           command: 'npx',
