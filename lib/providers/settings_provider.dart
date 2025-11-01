@@ -4,6 +4,9 @@ import '../models/memory.dart';
 import '../services/database_service.dart';
 
 class SettingsProvider extends ChangeNotifier {
+  // Memory limits
+  static const int maxTotalMemoryCharacters = 1000;
+  static const int maxSingleMemoryCharacters = 200;
   SharedPreferences? _prefs;
   final DatabaseService _databaseService = DatabaseService();
   String? _apiKey;
@@ -15,6 +18,7 @@ class SettingsProvider extends ChangeNotifier {
   double _frequencyPenalty = 0.0;
   double _presencePenalty = 0.0;
   List<Memory> _memories = [];
+  int _cachedTotalMemoryCharacters = 0;
 
   String? get apiKey => _apiKey;
   String? get systemPrompt => _systemPrompt;
@@ -107,7 +111,12 @@ class SettingsProvider extends ChangeNotifier {
   // Memory management
   Future<void> _loadMemories() async {
     _memories = await _databaseService.getAllMemories();
+    _updateCachedTotalCharacters();
     notifyListeners();
+  }
+
+  void _updateCachedTotalCharacters() {
+    _cachedTotalMemoryCharacters = _memories.fold(0, (sum, memory) => sum + memory.content.length);
   }
 
   Future<void> addMemory(String content) async {
@@ -137,7 +146,7 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   int getTotalMemoryCharacters() {
-    return _memories.fold(0, (sum, memory) => sum + memory.content.length);
+    return _cachedTotalMemoryCharacters;
   }
 
   String getMemoriesContext() {

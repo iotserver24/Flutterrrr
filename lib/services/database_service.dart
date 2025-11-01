@@ -7,6 +7,7 @@ import '../models/message.dart';
 import '../models/memory.dart';
 
 class DatabaseService {
+  static const int _databaseVersion = 4;
   static Database? _database;
   static bool _initialized = false;
 
@@ -49,7 +50,7 @@ class DatabaseService {
     
     return await openDatabase(
       path,
-      version: 4,
+      version: _databaseVersion,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE chats(

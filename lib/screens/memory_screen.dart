@@ -37,7 +37,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
             TextField(
               controller: _memoryController,
               maxLines: 3,
-              maxLength: 200,
+              maxLength: SettingsProvider.maxSingleMemoryCharacters,
               decoration: const InputDecoration(
                 hintText: 'e.g., I prefer Python for backend development',
                 border: OutlineInputBorder(),
@@ -47,12 +47,12 @@ class _MemoryScreenState extends State<MemoryScreen> {
             Consumer<SettingsProvider>(
               builder: (context, settings, child) {
                 final totalChars = settings.getTotalMemoryCharacters();
-                final remaining = 1000 - totalChars;
+                final remaining = SettingsProvider.maxTotalMemoryCharacters - totalChars;
                 return Text(
-                  'Total memory: $totalChars/1000 characters (${remaining} remaining)',
+                  'Total memory: $totalChars/${SettingsProvider.maxTotalMemoryCharacters} characters (${remaining} remaining)',
                   style: TextStyle(
                     fontSize: 12,
-                    color: totalChars > 900 ? Colors.red : Colors.grey,
+                    color: totalChars > (SettingsProvider.maxTotalMemoryCharacters * 0.9).toInt() ? Colors.red : Colors.grey,
                   ),
                 );
               },
@@ -74,7 +74,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
               
               // Check if adding this memory would exceed the limit
               final currentTotal = settingsProvider.getTotalMemoryCharacters();
-              if (currentTotal + content.length > 1000) {
+              if (currentTotal + content.length > SettingsProvider.maxTotalMemoryCharacters) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -129,7 +129,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
             TextField(
               controller: _memoryController,
               maxLines: 3,
-              maxLength: 200,
+              maxLength: SettingsProvider.maxSingleMemoryCharacters,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
               ),
@@ -138,12 +138,12 @@ class _MemoryScreenState extends State<MemoryScreen> {
             Consumer<SettingsProvider>(
               builder: (context, settings, child) {
                 final totalChars = settings.getTotalMemoryCharacters() - memory.content.length;
-                final remaining = 1000 - totalChars;
+                final remaining = SettingsProvider.maxTotalMemoryCharacters - totalChars;
                 return Text(
-                  'Total memory: $totalChars/1000 characters (${remaining} remaining)',
+                  'Total memory: $totalChars/${SettingsProvider.maxTotalMemoryCharacters} characters (${remaining} remaining)',
                   style: TextStyle(
                     fontSize: 12,
-                    color: totalChars > 900 ? Colors.red : Colors.grey,
+                    color: totalChars > (SettingsProvider.maxTotalMemoryCharacters * 0.9).toInt() ? Colors.red : Colors.grey,
                   ),
                 );
               },
@@ -165,7 +165,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
               
               // Check if editing this memory would exceed the limit
               final currentTotal = settingsProvider.getTotalMemoryCharacters() - memory.content.length;
-              if (currentTotal + content.length > 1000) {
+              if (currentTotal + content.length > SettingsProvider.maxTotalMemoryCharacters) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -233,18 +233,18 @@ class _MemoryScreenState extends State<MemoryScreen> {
                     ),
                     const SizedBox(height: 12),
                     LinearProgressIndicator(
-                      value: totalChars / 1000,
+                      value: totalChars / SettingsProvider.maxTotalMemoryCharacters,
                       backgroundColor: Colors.grey[800],
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        totalChars > 900 ? Colors.red : Colors.blue,
+                        totalChars > (SettingsProvider.maxTotalMemoryCharacters * 0.9).toInt() ? Colors.red : Colors.blue,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$totalChars / 1000 characters used',
+                      '$totalChars / SettingsProvider.maxTotalMemoryCharacters characters used',
                       style: TextStyle(
                         fontSize: 12,
-                        color: totalChars > 900 ? Colors.red : Colors.grey,
+                        color: totalChars > (SettingsProvider.maxTotalMemoryCharacters * 0.9).toInt() ? Colors.red : Colors.grey,
                       ),
                     ),
                   ],
@@ -353,7 +353,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
         onPressed: () {
           final settingsProvider =
               Provider.of<SettingsProvider>(context, listen: false);
-          if (settingsProvider.getTotalMemoryCharacters() >= 1000) {
+          if (settingsProvider.getTotalMemoryCharacters() >= SettingsProvider.maxTotalMemoryCharacters) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Memory limit reached. Delete some memories first.'),

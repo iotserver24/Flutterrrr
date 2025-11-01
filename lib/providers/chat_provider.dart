@@ -385,13 +385,14 @@ CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
 
       // Extract memory from full response if present
       String? extractedMemory;
-      RegExp memoryPattern = RegExp(r'\{"memory"\s*:\s*"([^"]+)"\}', caseSensitive: false);
-      Match? memoryMatch = memoryPattern.firstMatch(fullResponseContent);
+      // Try to find memory JSON - look for the first occurrence
+      final memoryPattern = RegExp(r'\{\s*"memory"\s*:\s*"([^"\\]*(\\.[^"\\]*)*)"\s*\}', caseSensitive: false);
+      final memoryMatch = memoryPattern.firstMatch(fullResponseContent);
       
       if (memoryMatch != null) {
         extractedMemory = memoryMatch.group(1);
-        // Remove memory JSON from the response
-        fullResponseContent = fullResponseContent.replaceAll(memoryPattern, '').trim();
+        // Remove only the first memory JSON from the response
+        fullResponseContent = fullResponseContent.replaceFirst(memoryPattern, '').trim();
         
         // Save memory if callback is set and within character limit
         if (_onMemoryExtracted != null && extractedMemory != null && extractedMemory.isNotEmpty) {

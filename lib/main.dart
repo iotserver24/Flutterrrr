@@ -73,7 +73,7 @@ class XibeChatApp extends StatelessWidget {
           chatProvider.setOnMemoryExtracted((memory) async {
             // Check if adding this memory would exceed the limit
             final currentTotal = settingsProvider.getTotalMemoryCharacters();
-            if (currentTotal + memory.length <= 1000) {
+            if (currentTotal + memory.length <= SettingsProvider.maxTotalMemoryCharacters) {
               await settingsProvider.addMemory(memory);
             }
           });
