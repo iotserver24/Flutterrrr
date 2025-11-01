@@ -179,11 +179,9 @@ jobs:
 
       - name: Build macOS app
         run: |
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            flutter build macos --release --target-platform darwin-arm64
-          else
-            flutter build macos --release --target-platform darwin-x64
-          fi
+          # Flutter builds universal binaries by default for macOS (both Intel and Apple Silicon)
+          # The --target-platform flag is not supported for macOS builds
+          flutter build macos --release
 
       - name: Install create-dmg
         run: brew install create-dmg
