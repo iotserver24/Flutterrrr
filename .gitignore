@@ -51,7 +51,4 @@ android/gradle/wrapper/gradle-wrapper.jar
 *.apk
 *.aab
 
-# Signing files
-android/key.properties
-*.jks
-*.keystore
+
