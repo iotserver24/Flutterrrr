@@ -1,0 +1,655 @@
+name: Multi-Platform Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: true
+        type: string
+      build_number:
+        description: 'Build number (e.g., 1)'
+        required: true
+        type: string
+
+env:
+  FLUTTER_VERSION: 'stable'
+
+jobs:
+  # ====================================================================
+  # ANDROID BUILD - Creates APK and AAB files
+  # ====================================================================
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: 📱 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: 🔍 Flutter doctor
+        run: flutter doctor -v
+
+      - name: 📦 Get dependencies
+        run: flutter pub get
+
+      - name: 🏗️ Build Universal APK
+        run: flutter build apk --release
+
+      - name: 🏗️ Build App Bundle (AAB)
+        run: flutter build appbundle --release
+
+      - name: 📝 Rename artifacts
+        run: |
+          mkdir -p artifacts/android
+          cp build/app/outputs/flutter-apk/app-release.apk artifacts/android/xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.apk
+          cp build/app/outputs/bundle/release/app-release.aab artifacts/android/xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.aab
+
+      - name: ⬆️ Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-builds
+          path: artifacts/android/*
+          retention-days: 1
+
+  # ====================================================================
+  # WINDOWS BUILD - Creates MSIX installer and portable ZIP
+  # ====================================================================
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📱 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: 🪟 Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: 📁 Create Windows platform files
+        run: |
+          if (!(Test-Path "windows")) {
+            flutter create --platforms=windows .
+          }
+        shell: powershell
+
+      - name: 📦 Get dependencies
+        run: flutter pub get
+
+      - name: 🏗️ Build Windows Release
+        run: flutter build windows --release
+
+      - name: 🔐 Create self-signed certificate for MSIX
+        run: |
+          Write-Host "⚠️ Creating self-signed certificate - Windows will show security warnings to users"
+          $cert = New-SelfSignedCertificate -Type Custom -Subject "CN=XibeChat, O=XibeChat, C=US" -KeyUsage DigitalSignature -FriendlyName "XibeChat Certificate" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          $password = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 20 | ForEach-Object {[char]$_})
+          $pwd = ConvertTo-SecureString -String $password -Force -AsPlainText
+          $certPath = Join-Path -Path $env:TEMP -ChildPath "xibechat.pfx"
+          Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath $certPath -Password $pwd
+          echo "CERT_PATH=$certPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "CERT_PASSWORD=$password" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "✅ Certificate created successfully"
+        shell: powershell
+
+      - name: 📦 Install MSIX tools
+        run: flutter pub add msix
+        continue-on-error: true
+
+      - name: 🏗️ Build MSIX package
+        run: |
+          flutter pub run msix:create --version ${{ inputs.version }}.${{ inputs.build_number }}.0 --certificate-path "${{ env.CERT_PATH }}" --certificate-password "${{ env.CERT_PASSWORD }}" --install-certificate false
+        continue-on-error: true
+
+      - name: 📦 Package Windows artifacts
+        run: |
+          mkdir -p artifacts/windows-x64
+          
+          # Copy EXE build to a temporary folder
+          Copy-Item -Path "build\windows\x64\runner\Release" -Destination "artifacts\windows-x64\xibe-chat-windows-x64" -Recurse
+          
+          # Create ZIP of the portable version
+          Compress-Archive -Path "artifacts\windows-x64\xibe-chat-windows-x64\*" -DestinationPath "artifacts\windows-x64\xibe-chat-windows-x64-v${{ inputs.version }}-${{ inputs.build_number }}.zip"
+          
+          # Copy MSIX if it was created successfully
+          $msixFile = Get-ChildItem -Path . -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($msixFile) {
+            Write-Host "✅ MSIX file found: $($msixFile.FullName)"
+            Copy-Item -Path $msixFile.FullName -Destination "artifacts\windows-x64\xibe-chat-windows-x64-v${{ inputs.version }}-${{ inputs.build_number }}.msix"
+          } else {
+            Write-Host "⚠️ MSIX file not found - only ZIP will be available"
+          }
+          
+          # Remove temporary unzipped folder to save space
+          Remove-Item -Path "artifacts\windows-x64\xibe-chat-windows-x64" -Recurse -Force
+        shell: powershell
+
+      - name: ⬆️ Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-builds
+          path: artifacts/windows-x64/*
+          retention-days: 1
+
+  # ====================================================================
+  # MACOS BUILD - Creates universal binary (Intel + Apple Silicon)
+  # ====================================================================
+  build-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📱 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: 🍎 Enable macOS Desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: 📁 Create macOS platform files
+        run: |
+          if [ ! -d "macos" ]; then
+            flutter create --platforms=macos .
+          fi
+
+      - name: 📦 Get dependencies
+        run: flutter pub get
+
+      - name: 🏗️ Build macOS app (Universal Binary)
+        run: |
+          echo "ℹ️ Building universal binary for both Intel and Apple Silicon Macs"
+          flutter build macos --release
+
+      - name: 🛠️ Install create-dmg
+        run: brew install create-dmg
+
+      - name: 💿 Create DMG installer
+        run: |
+          mkdir -p artifacts/macos-universal
+          
+          echo "📦 Creating DMG installer..."
+          create-dmg \
+            --volname "Xibe Chat" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --app-drop-link 600 185 \
+            "artifacts/macos-universal/xibe-chat-macos-universal-v${{ inputs.version }}-${{ inputs.build_number }}.dmg" \
+            "build/macos/Build/Products/Release/xibe_chat.app" || {
+              echo "⚠️ Advanced DMG creation failed, creating basic DMG..."
+              hdiutil create \
+                -volname "Xibe Chat" \
+                -srcfolder "build/macos/Build/Products/Release/xibe_chat.app" \
+                -ov \
+                -format UDZO \
+                "artifacts/macos-universal/xibe-chat-macos-universal-v${{ inputs.version }}-${{ inputs.build_number }}.dmg"
+            }
+          
+          echo "✅ DMG created successfully"
+
+      - name: 🗜️ Create ZIP archive
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r "../../../../../artifacts/macos-universal/xibe-chat-macos-universal-v${{ inputs.version }}-${{ inputs.build_number }}.zip" xibe_chat.app
+          echo "✅ ZIP created successfully"
+
+      - name: ⬆️ Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-universal-builds
+          path: artifacts/macos-universal/*
+          retention-days: 1
+
+  # ====================================================================
+  # LINUX BUILD - Creates DEB, AppImage, and TAR.GZ
+  # ====================================================================
+  build-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐧 Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+
+      - name: 📱 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: 🐧 Enable Linux Desktop
+        run: flutter config --enable-linux-desktop
+
+      - name: 📁 Create Linux platform files
+        run: |
+          if [ ! -d "linux" ]; then
+            flutter create --platforms=linux .
+          fi
+
+      - name: 📦 Get dependencies
+        run: flutter pub get
+
+      - name: 🏗️ Build Linux Release
+        run: flutter build linux --release
+
+      - name: 🛠️ Install AppImage tools
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+
+      - name: 📦 Create AppImage
+        run: |
+          mkdir -p artifacts/linux-x64
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/lib
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          
+          echo "📋 Copying application files..."
+          cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
+          
+          echo "📝 Creating desktop file..."
+          cat > AppDir/usr/share/applications/xibe-chat.desktop <<EOL
+          [Desktop Entry]
+          Name=Xibe Chat
+          Exec=xibe_chat
+          Icon=xibe-chat
+          Type=Application
+          Categories=Network;Chat;
+          EOL
+          
+          # Copy icon if exists
+          if [ -f "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" ]; then
+            cp android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png AppDir/usr/share/icons/hicolor/256x256/apps/xibe-chat.png
+          fi
+          
+          echo "📝 Creating AppRun script..."
+          cat > AppDir/AppRun <<'EOL'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin/:${HERE}/usr/sbin/:${HERE}/usr/games/:${HERE}/bin/:${HERE}/sbin/${PATH:+:$PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/lib/:${HERE}/usr/lib/i386-linux-gnu/:${HERE}/usr/lib/x86_64-linux-gnu/:${HERE}/lib/:${HERE}/lib/i386-linux-gnu/:${HERE}/lib/x86_64-linux-gnu/:${HERE}/lib32/:${HERE}/lib64/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          export PYTHONPATH="${HERE}/usr/share/pyshared/${PYTHONPATH:+:$PYTHONPATH}"
+          export XDG_DATA_DIRS="${HERE}/usr/share/${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+          export PERLLIB="${HERE}/usr/share/perl5/:${HERE}/usr/lib/perl5/${PERLLIB:+:$PERLLIB}"
+          export GSETTINGS_SCHEMA_DIR="${HERE}/usr/share/glib-2.0/schemas/${GSETTINGS_SCHEMA_DIR:+:$GSETTINGS_SCHEMA_DIR}"
+          export QT_PLUGIN_PATH="${HERE}/usr/lib/qt4/plugins/:${HERE}/usr/lib/i386-linux-gnu/qt4/plugins/:${HERE}/usr/lib/x86_64-linux-gnu/qt4/plugins/:${HERE}/usr/lib32/qt4/plugins/:${HERE}/usr/lib64/qt4/plugins/:${HERE}/usr/lib/qt5/plugins/:${HERE}/usr/lib/i386-linux-gnu/qt5/plugins/:${HERE}/usr/lib/x86_64-linux-gnu/qt5/plugins/:${HERE}/usr/lib32/qt5/plugins/:${HERE}/usr/lib64/qt5/plugins/${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+          EXEC=$(grep -e '^Exec=.*' "${HERE}"/*.desktop | head -n 1 | cut -d "=" -f 2 | cut -d " " -f 1)
+          exec "${HERE}/usr/bin/${EXEC}" "$@"
+          EOL
+          
+          chmod +x AppDir/AppRun
+          
+          echo "🏗️ Building AppImage..."
+          ARCH=x86_64 appimagetool AppDir "artifacts/linux-x64/xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.AppImage" || {
+            echo "⚠️ AppImage creation failed - DEB and TAR.GZ will still be available"
+          }
+
+      - name: 📦 Create DEB package
+        run: |
+          mkdir -p deb-package/DEBIAN
+          mkdir -p deb-package/opt/xibe-chat
+          mkdir -p deb-package/usr/share/applications
+          mkdir -p deb-package/usr/share/icons/hicolor/256x256/apps
+          
+          echo "📋 Copying application to DEB structure..."
+          cp -r build/linux/x64/release/bundle/* deb-package/opt/xibe-chat/
+          
+          echo "📝 Creating DEB control file..."
+          cat > deb-package/DEBIAN/control <<EOL
+          Package: xibe-chat
+          Version: ${{ inputs.version }}-${{ inputs.build_number }}
+          Section: net
+          Priority: optional
+          Architecture: amd64
+          Maintainer: XibeChat <support@xibechat.com>
+          Description: Xibe Chat - AI-powered chat application
+           A modern AI chat application built with Flutter.
+           Supports multiple AI models and beautiful cross-platform UI.
+          EOL
+          
+          cat > deb-package/usr/share/applications/xibe-chat.desktop <<EOL
+          [Desktop Entry]
+          Name=Xibe Chat
+          Exec=/opt/xibe-chat/xibe_chat
+          Icon=xibe-chat
+          Type=Application
+          Categories=Network;Chat;
+          EOL
+          
+          if [ -f "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" ]; then
+            cp android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png deb-package/usr/share/icons/hicolor/256x256/apps/xibe-chat.png
+          fi
+          
+          echo "🏗️ Building DEB package..."
+          dpkg-deb --build deb-package "artifacts/linux-x64/xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.deb"
+          echo "✅ DEB package created successfully"
+
+      - name: 🗜️ Create TAR.GZ archive
+        run: |
+          cd build/linux/x64/release/bundle
+          tar -czf "../../../../../artifacts/linux-x64/xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.tar.gz" .
+          echo "✅ TAR.GZ created successfully"
+
+      - name: ⬆️ Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-builds
+          path: artifacts/linux-x64/*
+          retention-days: 1
+
+  # ====================================================================
+  # iOS BUILD - Creates unsigned IPA (requires signing to install)
+  # ====================================================================
+  build-ios:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📱 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: 📁 Create iOS platform files
+        run: |
+          if [ ! -d "ios" ]; then
+            flutter create --platforms=ios .
+          fi
+
+      - name: 📦 Get dependencies
+        run: flutter pub get
+
+      - name: 🏗️ Build iOS (unsigned)
+        run: |
+          echo "⚠️ Building unsigned iOS app - will require signing before installation"
+          flutter build ios --release --no-codesign
+
+      - name: 📦 Create unsigned IPA
+        run: |
+          mkdir -p artifacts/ios
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r "artifacts/ios/xibe-chat-ios-unsigned-v${{ inputs.version }}-${{ inputs.build_number }}.ipa" Payload
+          rm -rf Payload
+          echo "✅ Unsigned IPA created - requires signing for installation"
+
+      - name: ⬆️ Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-builds
+          path: artifacts/ios/*
+          retention-days: 1
+
+  # ====================================================================
+  # CREATE GITHUB RELEASE - Combines all platform builds
+  # ====================================================================
+  create-release:
+    needs: [build-android, build-windows, build-macos, build-linux, build-ios]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: 📥 Download all artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          path: artifacts
+
+      - name: 📋 Display downloaded files
+        run: |
+          echo "=========================================="
+          echo "📦 DOWNLOADED BUILD ARTIFACTS"
+          echo "=========================================="
+          ls -R artifacts
+          echo "=========================================="
+
+      - name: 📁 Organize release files
+        run: |
+          mkdir -p release-files
+          
+          # Find and copy all build artifacts
+          find artifacts -type f \( -name "*.apk" -o -name "*.aab" -o -name "*.zip" -o -name "*.msix" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.tar.gz" -o -name "*.ipa" \) -exec cp {} release-files/ \;
+          
+          echo ""
+          echo "=========================================="
+          echo "📦 FILES READY FOR RELEASE"
+          echo "=========================================="
+          ls -lh release-files/ || echo "❌ No files found"
+          echo "=========================================="
+          
+          # Check if we have at least one artifact
+          if [ "$(ls -A release-files/)" ]; then
+            echo "HAS_ARTIFACTS=true" >> $GITHUB_ENV
+            echo "✅ Release will be created with available artifacts"
+          else
+            echo "HAS_ARTIFACTS=false" >> $GITHUB_ENV
+            echo "❌ No artifacts available - release will be skipped"
+          fi
+
+      - name: 🏷️ Create Git Tag
+        if: env.HAS_ARTIFACTS == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = `v${{ inputs.version }}-${{ inputs.build_number }}`;
+            try {
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `refs/tags/${tag}`,
+                sha: context.sha
+              });
+              console.log(`✅ Created tag: ${tag}`);
+            } catch (error) {
+              if (error.status === 422) {
+                console.log(`ℹ️ Tag ${tag} already exists - using existing tag`);
+              } else {
+                throw error;
+              }
+            }
+
+      - name: 🚀 Create GitHub Release
+        if: env.HAS_ARTIFACTS == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}-${{ inputs.build_number }}
+          name: Xibe Chat v${{ inputs.version }}-${{ inputs.build_number }}
+          draft: false
+          prerelease: false
+          files: release-files/*
+          fail_on_unmatched_files: false
+          body: |
+            # 🚀 Xibe Chat v${{ inputs.version }}-${{ inputs.build_number }}
+            
+            **Multi-platform release** with builds for all major operating systems!
+            
+            ---
+            
+            ## 📥 Download Instructions
+            
+            ### 📱 **Android**
+            - **`xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.apk`** ← Download this for direct installation
+            - **`xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.aab`** ← For Google Play Store upload
+            
+            **How to install APK:**
+            1. Download the `.apk` file to your Android phone
+            2. Go to Settings → Security → Enable "Install from Unknown Sources"
+            3. Tap the downloaded APK file and press Install
+            
+            ---
+            
+            ### 💻 **Windows**
+            - **`xibe-chat-windows-x64-v${{ inputs.version }}-${{ inputs.build_number }}.msix`** ← Installer version
+            - **`xibe-chat-windows-x64-v${{ inputs.version }}-${{ inputs.build_number }}.zip`** ← Portable version (no installation needed)
+            
+            **How to install:**
+            
+            **MSIX (Installer):**
+            1. Download the `.msix` file
+            2. Double-click to open
+            3. Click "Install" (you may see a security warning - this is normal for self-signed apps)
+            
+            **ZIP (Portable):**
+            1. Download the `.zip` file
+            2. Right-click and select "Extract All"
+            3. Open the extracted folder and run `xibe_chat.exe`
+            
+            ⚠️ **Note:** Windows may show a security warning because this app is self-signed. Click "More info" then "Run anyway" to proceed.
+            
+            ---
+            
+            ### 🍎 **macOS**
+            - **`xibe-chat-macos-universal-v${{ inputs.version }}-${{ inputs.build_number }}.dmg`** ← Installer (works on Intel AND Apple Silicon)
+            - **`xibe-chat-macos-universal-v${{ inputs.version }}-${{ inputs.build_number }}.zip`** ← Portable version
+            
+            **How to install:**
+            
+            **DMG (Installer):**
+            1. Download the `.dmg` file
+            2. Double-click to open
+            3. Drag "Xibe Chat" to your Applications folder
+            4. **First time:** Right-click the app and select "Open" (regular double-click may be blocked)
+            
+            **ZIP (Portable):**
+            1. Download the `.zip` file
+            2. Double-click to extract
+            3. Right-click the app and select "Open"
+            
+            ℹ️ **The universal build works on both Intel Macs and Apple Silicon (M1/M2/M3) Macs!**
+            
+            ---
+            
+            ### 🐧 **Linux**
+            - **`xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.deb`** ← For Ubuntu/Debian/Mint
+            - **`xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.AppImage`** ← Universal Linux (works everywhere)
+            - **`xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.tar.gz`** ← Manual installation
+            
+            **How to install:**
+            
+            **DEB (Ubuntu/Debian):**
+            ```bash
+            sudo dpkg -i xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.deb
+            ```
+            
+            **AppImage (Any Linux):**
+            ```bash
+            chmod +x xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.AppImage
+            ./xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.AppImage
+            ```
+            
+            **TAR.GZ (Manual):**
+            ```bash
+            tar -xzf xibe-chat-linux-x64-v${{ inputs.version }}-${{ inputs.build_number }}.tar.gz
+            ./xibe_chat
+            ```
+            
+            ---
+            
+            ### 📱 **iOS**
+            - **`xibe-chat-ios-unsigned-v${{ inputs.version }}-${{ inputs.build_number }}.ipa`** ← Requires signing
+            
+            ⚠️ **IMPORTANT:** This IPA file is **unsigned** and cannot be installed directly on your iPhone.
+            
+            **You need to:**
+            1. Use **Xcode** with your Apple Developer account to sign it
+            2. Use tools like **AltStore** or **Sideloadly** to install it
+            3. Have a jailbroken device with **AppSync Unified**
+            
+            **For regular users:** It's easier to wait for an App Store release or use the Android version if you have an Android device.
+            
+            ---
+            
+            ## ✨ What's Inside
+            
+            - 🤖 **AI-Powered Chat** - Talk with multiple AI models
+            - 💬 **Multiple Conversations** - Manage different chat threads
+            - 🌓 **Dark/Light Mode** - Choose your preferred theme
+            - 📝 **Markdown Support** - Rich text formatting in messages
+            - 💾 **Local Storage** - Your chat history saved on your device
+            - 🔍 **Web Search** - AI can search the internet for answers
+            - 🎨 **Beautiful UI** - Modern design that works everywhere
+            
+            ---
+            
+            ## 🛠️ Technical Information
+            
+            - **Flutter Version:** Stable Channel
+            - **Build Date:** ${{ github.event.repository.updated_at }}
+            - **Commit SHA:** `${{ github.sha }}`
+            - **Supported Platforms:** Android, iOS, Windows, macOS, Linux
+            
+            ---
+            
+            ## ❓ Having Issues?
+            
+            **Can't install on Windows?**
+            - Try the ZIP version instead of MSIX
+            - Make sure you clicked "More info" → "Run anyway" when Windows Defender appears
+            
+            **Can't open on macOS?**
+            - Right-click and select "Open" instead of double-clicking
+            - Go to System Preferences → Security & Privacy and click "Open Anyway"
+            
+            **Linux AppImage won't run?**
+            - Make sure you ran `chmod +x` to make it executable
+            - Try installing FUSE: `sudo apt install fuse` (Ubuntu/Debian)
+            
+            ---
+            
+            **Enjoy Xibe Chat! 🎉**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🧹 Cleanup temporary artifacts
+        if: always()
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            android-builds
+            windows-x64-builds
+            macos-universal-builds
+            linux-x64-builds
+            ios-builds
