@@ -498,63 +498,54 @@ class _ChatInputState extends State<ChatInput> {
                 //   ),
                 // ),
                 Expanded(
-                  child: RawKeyboardListener(
-                    focusNode: FocusNode(), // Temporary focus node for keyboard listener
-                    onKey: (RawKeyEvent event) {
-                      // On desktop: Enter sends, Ctrl+Enter adds new line
-                      if (_isDesktop && event is RawKeyDownEvent) {
-                        if (event.logicalKey == LogicalKeyboardKey.enter) {
-                          if (!event.isControlPressed) {
-                            // Enter without Ctrl: send message
-                            _sendMessage();
-                          }
-                          // Ctrl+Enter: allow default behavior (new line)
-                        }
-                      }
-                    },
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      enabled: !widget.isLoading,
-                      maxLines: null,
-                      textInputAction: _isDesktop ? TextInputAction.newline : TextInputAction.send,
-                      decoration: InputDecoration(
-                        hintText: 'Type something',
-                        hintStyle: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 15,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(
-                            color: Colors.white.withOpacity(0.1),
-                            width: 1,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF3B82F6),
-                            width: 2,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFF1A1A1A),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: isWideScreen ? 20 : 16,
-                          vertical: isWideScreen ? 14 : 12,
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    enabled: !widget.isLoading,
+                    maxLines: null,
+                    textInputAction: _isDesktop ? TextInputAction.newline : TextInputAction.send,
+                    keyboardType: TextInputType.multiline,
+                    decoration: InputDecoration(
+                      hintText: 'Type something',
+                      hintStyle: TextStyle(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 15,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide(
+                          color: Colors.white.withOpacity(0.1),
+                          width: 1,
                         ),
                       ),
-                      onSubmitted: (_) {
-                        if (!_isDesktop) {
-                          _sendMessage();
-                        }
-                      },
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF3B82F6),
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFF1A1A1A),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: isWideScreen ? 20 : 16,
+                        vertical: isWideScreen ? 14 : 12,
+                      ),
                     ),
+                    onSubmitted: (_) {
+                      if (!_isDesktop) {
+                        _sendMessage();
+                      }
+                    },
+                    onEditingComplete: () {
+                      if (_isDesktop) {
+                        _sendMessage();
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
