@@ -376,10 +376,15 @@ class _ChatScreenState extends State<ChatScreen> {
           Consumer<ChatProvider>(
             builder: (context, chatProvider, child) {
               return ChatInput(
-                onSendMessage: (message) {
-                  chatProvider.sendMessage(message);
+                onSendMessage: (message, {String? imageBase64, String? imagePath}) {
+                  chatProvider.sendMessage(
+                    message,
+                    imageBase64: imageBase64,
+                    imagePath: imagePath,
+                  );
                 },
                 isLoading: chatProvider.isLoading,
+                supportsVision: chatProvider.selectedModelSupportsVision,
               );
             },
           ),
@@ -679,10 +684,15 @@ class _ChatScreenState extends State<ChatScreen> {
                 Consumer<ChatProvider>(
                   builder: (context, chatProvider, child) {
                     return ChatInput(
-                      onSendMessage: (message) {
-                        chatProvider.sendMessage(message);
+                      onSendMessage: (message, {String? imageBase64, String? imagePath}) {
+                        chatProvider.sendMessage(
+                          message,
+                          imageBase64: imageBase64,
+                          imagePath: imagePath,
+                        );
                       },
                       isLoading: chatProvider.isLoading,
+                      supportsVision: chatProvider.selectedModelSupportsVision,
                     );
                   },
                 ),

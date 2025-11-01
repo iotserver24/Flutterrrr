@@ -1,10 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 import '../models/message.dart';
 
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends StatefulWidget {
   final Message message;
   final bool isStreaming;
 
@@ -15,8 +16,31 @@ class MessageBubble extends StatelessWidget {
   });
 
   @override
+  State<MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<MessageBubble>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _cursorController;
+
+  @override
+  void initState() {
+    super.initState();
+    _cursorController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 530),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _cursorController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isUser = message.role == 'user';
+    final isUser = widget.message.role == 'user';
     final timeFormat = DateFormat('HH:mm');
 
     return Align(
@@ -41,7 +65,7 @@ class MessageBubble extends StatelessWidget {
                   isUser ? '👤 ' : '🤖 ',
                   style: const TextStyle(fontSize: 16),
                 ),
-                if (message.webSearchUsed)
+                if (widget.message.webSearchUsed)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     margin: const EdgeInsets.only(right: 8),
@@ -57,31 +81,84 @@ class MessageBubble extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            if (isUser)
-              Text(
-                message.content,
-                style: const TextStyle(color: Colors.white),
-              )
-            else
-              MarkdownBody(
-                data: message.content,
-                styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(color: Colors.white),
-                  code: TextStyle(
-                    backgroundColor: Colors.black.withOpacity(0.3),
-                    color: Colors.green,
-                  ),
-                  codeblockDecoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+            if (isUser) ...[
+              // Show image if present
+              if (widget.message.imagePath != null && widget.message.imagePath!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      File(widget.message.imagePath!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          padding: const EdgeInsets.all(8),
+                          color: Colors.black26,
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.broken_image, color: Colors.white70, size: 16),
+                              SizedBox(width: 4),
+                              Text('Image unavailable', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
+              Text(
+                widget.message.content,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ]
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: MarkdownBody(
+                      data: widget.message.content,
+                      styleSheet: MarkdownStyleSheet(
+                        p: const TextStyle(color: Colors.white),
+                        code: TextStyle(
+                          backgroundColor: Colors.black.withOpacity(0.3),
+                          color: Colors.green,
+                        ),
+                        codeblockDecoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Add blinking cursor for streaming messages
+                  if (widget.isStreaming)
+                    AnimatedBuilder(
+                      animation: _cursorController,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _cursorController.value,
+                          child: Container(
+                            margin: const EdgeInsets.only(left: 2, top: 2),
+                            width: 8,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
               ),
             const SizedBox(height: 4),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (isStreaming)
+                if (widget.isStreaming)
                   Container(
                     margin: const EdgeInsets.only(right: 8),
                     child: const SizedBox(
@@ -95,17 +172,17 @@ class MessageBubble extends StatelessWidget {
                   )
                 else
                   Text(
-                    timeFormat.format(message.timestamp),
+                    timeFormat.format(widget.message.timestamp),
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.white.withOpacity(0.6),
                     ),
                   ),
-                if (!isStreaming) const SizedBox(width: 8),
-                if (!isStreaming)
+                if (!widget.isStreaming) const SizedBox(width: 8),
+                if (!widget.isStreaming)
                   InkWell(
                     onTap: () {
-                      Clipboard.setData(ClipboardData(text: message.content));
+                      Clipboard.setData(ClipboardData(text: widget.message.content));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Message copied to clipboard'),

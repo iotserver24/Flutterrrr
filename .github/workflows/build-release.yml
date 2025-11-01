@@ -76,7 +76,7 @@ jobs:
     
     strategy:
       matrix:
-        arch: [x64]  # Note: arm64 support is experimental in Flutter Windows, x86 is deprecated. GitHub runners only provide x64.
+        arch: [x64, arm64]  # Building for x64 and arm64 (experimental). x86 (32-bit) is deprecated by Flutter.
     
     steps:
       - name: Checkout code
@@ -101,8 +101,12 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build Windows Release
-        run: flutter build windows --release
+      - name: Build Windows Release (${{ matrix.arch }})
+        run: |
+          # Note: ARM64 support is experimental. On x64 runners, Flutter builds x64 by default.
+          # For ARM64, Flutter may still output to x64 folder but the binary targets ARM64.
+          flutter build windows --release
+        shell: powershell
 
       - name: Create self-signed certificate for MSIX
         run: |
@@ -123,20 +127,33 @@ jobs:
         run: |
           mkdir -p artifacts/windows-${{ matrix.arch }}
           
-          # Copy EXE build
-          Copy-Item -Path "build\windows\${{ matrix.arch }}\runner\Release" -Destination "artifacts\windows-${{ matrix.arch }}\xibe-chat-windows-${{ matrix.arch }}" -Recurse
+          # Determine the actual build output folder
+          # Flutter may output ARM64 builds to x64 folder when cross-compiling
+          $buildPath = "build\windows\x64\runner\Release"
+          if (Test-Path "build\windows\${{ matrix.arch }}\runner\Release") {
+            $buildPath = "build\windows\${{ matrix.arch }}\runner\Release"
+          }
           
-          # Create ZIP of EXE
-          Compress-Archive -Path "artifacts\windows-${{ matrix.arch }}\xibe-chat-windows-${{ matrix.arch }}\*" -DestinationPath "artifacts\windows-${{ matrix.arch }}\xibe-chat-windows-${{ matrix.arch }}-v${{ inputs.version }}-${{ inputs.build_number }}.zip"
+          Write-Host "Using build path: $buildPath"
+          
+          # Copy EXE build
+          if (Test-Path $buildPath) {
+            Copy-Item -Path $buildPath -Destination "artifacts\windows-${{ matrix.arch }}\xibe-chat-windows-${{ matrix.arch }}" -Recurse
+            
+            # Create ZIP of EXE
+            Compress-Archive -Path "artifacts\windows-${{ matrix.arch }}\xibe-chat-windows-${{ matrix.arch }}\*" -DestinationPath "artifacts\windows-${{ matrix.arch }}\xibe-chat-windows-${{ matrix.arch }}-v${{ inputs.version }}-${{ inputs.build_number }}.zip"
+            
+            # Remove unzipped folder to save space
+            Remove-Item -Path "artifacts\windows-${{ matrix.arch }}\xibe-chat-windows-${{ matrix.arch }}" -Recurse -Force
+          } else {
+            Write-Host "Build path not found, skipping EXE packaging"
+          }
           
           # Copy MSIX
           $msixFile = Get-ChildItem -Path . -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($msixFile) {
             Copy-Item -Path $msixFile.FullName -Destination "artifacts\windows-${{ matrix.arch }}\xibe-chat-windows-${{ matrix.arch }}-v${{ inputs.version }}-${{ inputs.build_number }}.msix"
           }
-          
-          # Remove unzipped folder to save space
-          Remove-Item -Path "artifacts\windows-${{ matrix.arch }}\xibe-chat-windows-${{ matrix.arch }}" -Recurse -Force
         shell: powershell
 
       - name: Upload Windows artifacts

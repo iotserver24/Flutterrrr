@@ -1,13 +1,18 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 
 class ChatInput extends StatefulWidget {
-  final Function(String) onSendMessage;
+  final Function(String, {String? imageBase64, String? imagePath}) onSendMessage;
   final bool isLoading;
+  final bool supportsVision;
 
   const ChatInput({
     super.key,
     required this.onSendMessage,
     this.isLoading = false,
+    this.supportsVision = false,
   });
 
   @override
@@ -16,7 +21,10 @@ class ChatInput extends StatefulWidget {
 
 class _ChatInputState extends State<ChatInput> {
   final TextEditingController _controller = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
   bool _hasText = false;
+  XFile? _selectedImage;
+  String? _imageBase64;
 
   @override
   void initState() {
@@ -34,10 +42,51 @@ class _ChatInputState extends State<ChatInput> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        // Read the image file and convert to base64
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImage = image;
+          _imageBase64 = base64Encode(bytes);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _selectedImage = null;
+      _imageBase64 = null;
+    });
+  }
+
   void _sendMessage() {
-    if (_hasText && !widget.isLoading) {
-      widget.onSendMessage(_controller.text.trim());
+    if ((_hasText || _selectedImage != null) && !widget.isLoading) {
+      widget.onSendMessage(
+        _controller.text.trim(),
+        imageBase64: _imageBase64,
+        imagePath: _selectedImage?.path,
+      );
       _controller.clear();
+      setState(() {
+        _selectedImage = null;
+        _imageBase64 = null;
+      });
     }
   }
 
@@ -56,43 +105,101 @@ class _ChatInputState extends State<ChatInput> {
         ],
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                enabled: !widget.isLoading,
-                maxLines: null,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  hintText: 'Type a message...',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
+            // Image preview
+            if (_selectedImage != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(
+                        File(_selectedImage!.path),
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Image attached',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                      onPressed: _removeImage,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+            // Input row
+            Row(
+              children: [
+                // Image picker button (only show if model supports vision)
+                if (widget.supportsVision)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.image, color: Colors.white70),
+                      onPressed: widget.isLoading ? null : _pickImage,
+                      tooltip: 'Attach image',
+                    ),
                   ),
-                  filled: true,
-                  fillColor: const Color(0xFF1A1A1A),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    enabled: !widget.isLoading,
+                    maxLines: null,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: widget.supportsVision 
+                          ? 'Type a message or attach an image...'
+                          : 'Type a message...',
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFF1A1A1A),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
-                onSubmitted: (_) => _sendMessage(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: _hasText && !widget.isLoading
-                    ? const Color(0xFF3B82F6)
-                    : Colors.grey.withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.send, color: Colors.white),
-                onPressed: _hasText && !widget.isLoading ? _sendMessage : null,
-              ),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: (_hasText || _selectedImage != null) && !widget.isLoading
+                        ? const Color(0xFF3B82F6)
+                        : Colors.grey.withOpacity(0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: (_hasText || _selectedImage != null) && !widget.isLoading ? _sendMessage : null,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

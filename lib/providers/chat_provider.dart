@@ -30,6 +30,21 @@ class ChatProvider extends ChangeNotifier {
   List<AiModel> get availableModels => _availableModels;
   String get selectedModel => _selectedModel;
   String? get systemPrompt => _systemPrompt;
+  
+  bool get selectedModelSupportsVision {
+    final model = _availableModels.firstWhere(
+      (m) => m.name == _selectedModel,
+      orElse: () => AiModel(
+        name: '',
+        description: '',
+        inputModalities: [],
+        outputModalities: [],
+        aliases: [],
+      ),
+    );
+    return model.vision == true || 
+           model.inputModalities.contains('image');
+  }
 
   ChatProvider({String? apiKey, String? systemPrompt}) {
     _systemPrompt = systemPrompt;
@@ -115,7 +130,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendMessage(String content) async {
+  Future<void> sendMessage(String content, {String? imageBase64, String? imagePath}) async {
     if (_currentChat == null) {
       await createNewChat();
     }
@@ -126,6 +141,8 @@ class ChatProvider extends ChangeNotifier {
       content: content,
       timestamp: DateTime.now(),
       chatId: _currentChat!.id!,
+      imageBase64: imageBase64,
+      imagePath: imagePath,
     );
 
     await _databaseService.insertMessage(userMessage);
