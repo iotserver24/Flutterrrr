@@ -24,6 +24,7 @@ class _ChatInputState extends State<ChatInput> {
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
   final FocusNode _focusNode = FocusNode();
+  final FocusNode _keyboardListenerFocusNode = FocusNode();
   bool _hasText = false;
   XFile? _selectedImage;
   String? _imageBase64;
@@ -48,6 +49,7 @@ class _ChatInputState extends State<ChatInput> {
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
+    _keyboardListenerFocusNode.dispose();
     super.dispose();
   }
 
@@ -499,7 +501,7 @@ class _ChatInputState extends State<ChatInput> {
                 // ),
                 Expanded(
                   child: KeyboardListener(
-                    focusNode: FocusNode(),
+                    focusNode: _keyboardListenerFocusNode,
                     onKeyEvent: (KeyEvent event) {
                       // On desktop: Enter sends, Shift+Enter or Ctrl+Enter adds new line
                       if (_isDesktop && event is KeyDownEvent) {
