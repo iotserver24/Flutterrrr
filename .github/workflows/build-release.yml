@@ -117,7 +117,7 @@ jobs:
 
       - name: Build Windows MSIX
         run: |
-          flutter pub run msix:create --certificate-path ${{ env.CERT_PATH }} --certificate-password ${{ env.CERT_PASSWORD }} --version ${{ inputs.version }}.${{ inputs.build_number }}
+          flutter pub run msix:create --certificate-path ${{ env.CERT_PATH }} --certificate-password ${{ env.CERT_PASSWORD }} --install-certificate false --version ${{ inputs.version }}.${{ inputs.build_number }}
       
       - name: Rename Windows artifacts
         run: |
@@ -148,6 +148,7 @@ jobs:
 
   create-release:
     needs: [build-android, build-windows]
+    if: always()
     runs-on: ubuntu-latest
 
     permissions:
@@ -157,6 +158,7 @@ jobs:
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           path: artifacts
 
@@ -164,18 +166,30 @@ jobs:
         run: ls -R artifacts
 
       - name: Prepare Windows EXE for release
+        continue-on-error: true
         run: |
-          cd artifacts/windows-exe
-          zip -r ../../xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip .
-          cd ../..
+          if [ -d "artifacts/windows-exe" ] && [ "$(ls -A artifacts/windows-exe)" ]; then
+            cd artifacts/windows-exe
+            zip -r ../../xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip .
+            cd ../..
+            echo "✓ Windows EXE zip created"
+          else
+            echo "⚠ Warning: No Windows EXE files found, skipping zip creation"
+          fi
       
       - name: Move files to release directory
         run: |
           mkdir -p release-files
+          # Track what we have
+          HAS_ANDROID=false
+          HAS_WINDOWS_MSIX=false
+          HAS_WINDOWS_EXE=false
+          
           # Move Android APK
           if [ -d "artifacts/android-apk" ] && [ "$(ls -A artifacts/android-apk)" ]; then
             mv artifacts/android-apk/* release-files/
             echo "✓ Moved Android APK files"
+            HAS_ANDROID=true
           else
             echo "⚠ Warning: No Android APK files found"
           fi
@@ -183,6 +197,7 @@ jobs:
           if [ -d "artifacts/windows-msix" ] && [ "$(ls -A artifacts/windows-msix)" ]; then
             mv artifacts/windows-msix/* release-files/
             echo "✓ Moved Windows MSIX files"
+            HAS_WINDOWS_MSIX=true
           else
             echo "⚠ Warning: No Windows MSIX files found"
           fi
@@ -190,14 +205,37 @@ jobs:
           if [ -f "xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip" ]; then
             mv xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip release-files/
             echo "✓ Moved Windows EXE zip"
+            HAS_WINDOWS_EXE=true
           else
             echo "⚠ Warning: No Windows EXE zip found"
           fi
+          
+          # Save status to environment
+          echo "HAS_ANDROID=$HAS_ANDROID" >> $GITHUB_ENV
+          echo "HAS_WINDOWS_MSIX=$HAS_WINDOWS_MSIX" >> $GITHUB_ENV
+          echo "HAS_WINDOWS_EXE=$HAS_WINDOWS_EXE" >> $GITHUB_ENV
+          
           echo ""
           echo "📦 Release files ready:"
-          ls -lh release-files/
+          ls -lh release-files/ || echo "No files available"
+          
+          # Check if we have at least one artifact
+          if [ "$(ls -A release-files/)" ]; then
+            echo "HAS_ARTIFACTS=true" >> $GITHUB_ENV
+            echo "✅ At least one artifact available for release"
+          else
+            echo "HAS_ARTIFACTS=false" >> $GITHUB_ENV
+            echo "❌ No artifacts available for release"
+          fi
+      
+      - name: Check if release can be created
+        if: env.HAS_ARTIFACTS == 'false'
+        run: |
+          echo "::warning::No artifacts available - release will not be created"
+          echo "::notice::At least one build job must succeed to create a release"
       
       - name: Create Git Tag
+        if: env.HAS_ARTIFACTS == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -219,6 +257,7 @@ jobs:
             }
       
       - name: Create GitHub Release
+        if: env.HAS_ARTIFACTS == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ inputs.version }}-${{ inputs.build_number }}
@@ -226,18 +265,18 @@ jobs:
           draft: false
           prerelease: false
           files: release-files/*
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false
           body: |
             ## 🚀 Xibe Chat v${{ inputs.version }}-${{ inputs.build_number }}
             
-            ### 📥 Download Options
+            ### 📥 Available Downloads
             
-            **📱 Android:**
-            - `xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.apk` - Universal APK for all Android devices
+            ${{ env.HAS_ANDROID == 'true' && '**📱 Android:**' || '**📱 Android:** ⚠️ Build failed - not available' }}
+            ${{ env.HAS_ANDROID == 'true' && format('- `xibe-chat-v{0}-{1}.apk` - Universal APK for all Android devices', inputs.version, inputs.build_number) || '' }}
             
-            **💻 Windows:**
-            - `xibe-chat-v${{ inputs.version }}-${{ inputs.build_number }}.msix` - Windows Store-style installer
-            - `xibe-chat-windows-v${{ inputs.version }}-${{ inputs.build_number }}.zip` - Portable version (no installation required)
+            ${{ (env.HAS_WINDOWS_MSIX == 'true' || env.HAS_WINDOWS_EXE == 'true') && '**💻 Windows:**' || '**💻 Windows:** ⚠️ Build failed - not available' }}
+            ${{ env.HAS_WINDOWS_MSIX == 'true' && format('- `xibe-chat-v{0}-{1}.msix` - Windows Store-style installer', inputs.version, inputs.build_number) || '' }}
+            ${{ env.HAS_WINDOWS_EXE == 'true' && format('- `xibe-chat-windows-v{0}-{1}.zip` - Portable version (no installation required)', inputs.version, inputs.build_number) || '' }}
             
             ---
             
