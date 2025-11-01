@@ -555,8 +555,9 @@ jobs:
 
       - name: Enable iOS icon generation
         run: |
-          # Temporarily enable iOS icon generation now that ios directory exists
+          # Temporarily enable iOS icon generation now that iOS directory exists
           sed -i.bak 's/ios: false/ios: true/' pubspec.yaml
+          rm pubspec.yaml.bak
 
       - name: Generate app icons
         run: |
