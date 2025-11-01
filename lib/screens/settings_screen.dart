@@ -318,23 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ),
-                      ListTile(
-                        title: const Text('Max Tokens'),
-                        subtitle: Text('${settingsProvider.maxTokens} - Maximum response length'),
-                        trailing: SizedBox(
-                          width: 200,
-                          child: Slider(
-                            value: settingsProvider.maxTokens.toDouble(),
-                            min: 256,
-                            max: 8192,
-                            divisions: 31,
-                            label: settingsProvider.maxTokens.toString(),
-                            onChanged: (value) {
-                              settingsProvider.setMaxTokens(value.toInt());
-                            },
-                          ),
-                        ),
-                      ),
+                      // Max Tokens setting removed as per requirement
                       ListTile(
                         title: const Text('Top P'),
                         subtitle: Text('${settingsProvider.topP.toStringAsFixed(2)} - Nucleus sampling'),

@@ -7,9 +7,14 @@ import 'providers/theme_provider.dart';
 import 'providers/settings_provider.dart';
 import 'screens/chat_screen.dart';
 import 'screens/settings_screen.dart';
+import 'services/mcp_config_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize MCP configuration with defaults
+  final mcpConfigService = McpConfigService();
+  await mcpConfigService.initializeDefaultConfig();
   
   // Configure window for desktop platforms
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {

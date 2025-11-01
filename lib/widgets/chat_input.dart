@@ -102,26 +102,60 @@ class _ChatInputState extends State<ChatInput> {
     }
   }
 
-  void _showFilePickerOptions() {
+  void _showAttachmentOptions() {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage();
-              },
+            if (widget.supportsVision) ...[
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Image Options',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Take a photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromCamera();
+                },
+              ),
+              const Divider(),
+            ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'MCP Connections',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take a photo'),
+              leading: const Icon(Icons.settings),
+              title: const Text('Manage MCP Servers'),
+              subtitle: const Text('Configure Model Context Protocol servers'),
               onTap: () {
                 Navigator.pop(context);
-                _pickImageFromCamera();
+                Navigator.pushNamed(context, '/settings');
               },
             ),
           ],
@@ -210,46 +244,45 @@ class _ChatInputState extends State<ChatInput> {
             // Input row
             Row(
               children: [
-                // Image picker button (only show if model supports vision)
-                if (widget.supportsVision)
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.add_photo_alternate, color: Colors.white70),
-                      onPressed: widget.isLoading ? null : _showFilePickerOptions,
-                      tooltip: 'Attach image',
-                    ),
-                  ),
-                // Web search toggle button
+                // Plus button for attachments and MCP connections
                 Container(
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: _webSearchEnabled 
-                        ? const Color(0xFF3B82F6).withOpacity(0.3)
-                        : const Color(0xFF1A1A1A),
+                    color: const Color(0xFF1A1A1A),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    icon: Icon(
-                      Icons.search,
-                      color: _webSearchEnabled 
-                          ? const Color(0xFF3B82F6)
-                          : Colors.white70,
-                    ),
-                    onPressed: widget.isLoading ? null : () {
-                      setState(() {
-                        _webSearchEnabled = !_webSearchEnabled;
-                      });
-                    },
-                    tooltip: _webSearchEnabled 
-                        ? 'Web search enabled' 
-                        : 'Enable web search',
+                    icon: const Icon(Icons.add, color: Colors.white70),
+                    onPressed: widget.isLoading ? null : _showAttachmentOptions,
+                    tooltip: 'Attachments & Options',
                   ),
                 ),
+                // Web search toggle button - commented out as per requirement
+                // Container(
+                //   margin: const EdgeInsets.only(right: 8),
+                //   decoration: BoxDecoration(
+                //     color: _webSearchEnabled 
+                //         ? const Color(0xFF3B82F6).withOpacity(0.3)
+                //         : const Color(0xFF1A1A1A),
+                //     shape: BoxShape.circle,
+                //   ),
+                //   child: IconButton(
+                //     icon: Icon(
+                //       Icons.search,
+                //       color: _webSearchEnabled 
+                //           ? const Color(0xFF3B82F6)
+                //           : Colors.white70,
+                //     ),
+                //     onPressed: widget.isLoading ? null : () {
+                //       setState(() {
+                //         _webSearchEnabled = !_webSearchEnabled;
+                //       });
+                //     },
+                //     tooltip: _webSearchEnabled 
+                //         ? 'Web search enabled' 
+                //         : 'Enable web search',
+                //   ),
+                // ),
                 Expanded(
                   child: RawKeyboardListener(
                     focusNode: FocusNode(), // Temporary focus node for keyboard listener
@@ -272,13 +305,7 @@ class _ChatInputState extends State<ChatInput> {
                       maxLines: null,
                       textInputAction: _isDesktop ? TextInputAction.newline : TextInputAction.send,
                       decoration: InputDecoration(
-                        hintText: widget.supportsVision 
-                            ? (_isDesktop 
-                                ? 'Type a message (Enter to send, Ctrl+Enter for new line)...'
-                                : 'Type a message or attach an image...')
-                            : (_isDesktop
-                                ? 'Type a message (Enter to send, Ctrl+Enter for new line)...'
-                                : 'Type a message...'),
+                        hintText: 'Type something',
                         hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
