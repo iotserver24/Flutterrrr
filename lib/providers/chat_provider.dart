@@ -130,7 +130,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendMessage(String content, {String? imageBase64, String? imagePath}) async {
+  Future<void> sendMessage(String content, {String? imageBase64, String? imagePath, bool webSearch = false}) async {
     if (_currentChat == null) {
       await createNewChat();
     }
@@ -143,6 +143,7 @@ class ChatProvider extends ChangeNotifier {
       chatId: _currentChat!.id!,
       imageBase64: imageBase64,
       imagePath: imagePath,
+      webSearchUsed: webSearch,
     );
 
     await _databaseService.insertMessage(userMessage);
@@ -187,7 +188,7 @@ class ChatProvider extends ChangeNotifier {
         role: 'assistant',
         content: _streamingContent,
         timestamp: DateTime.now(),
-        webSearchUsed: false,
+        webSearchUsed: webSearch,
         chatId: _currentChat!.id!,
       );
 

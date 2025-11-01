@@ -29,13 +29,22 @@ Quick setup script: `./scripts/encode-keystore.sh` (Linux/macOS) or `.\scripts\e
 - 🎯 Multiple AI model selection (Gemini, OpenAI, DeepSeek, Mistral, and more)
 - 💬 Multiple conversation threads
 - 👋 Smart greetings based on time of day
-- 🎨 Beautiful animations and smooth transitions
-- 🌙 Dark/Light theme support
+- 🎨 **NEW:** 5 Beautiful themes (Dark, Light, Blue, Purple, Green)
+- 🌐 **NEW:** Web search toggle for real-time information
+- 🧠 **NEW:** Thinking indicator showing AI reasoning process
+- ⚙️ **NEW:** Advanced AI controls (temperature, max tokens, top-p, penalties)
+- 💻 **NEW:** E2B code execution sandbox integration
+- 🔌 **NEW:** MCP (Model Context Protocol) server support
+- 📸 **NEW:** Enhanced image upload with camera and gallery support
+- 🌙 Multi-theme support with custom color schemes
 - 📝 Markdown message rendering
 - 💾 Local chat history with SQLite
 - 📋 Copy message functionality
 - ⚡ Real-time typing indicators
 - 🔑 Configurable API key support
+- 🎨 Beautiful animations and smooth transitions
+
+> **See [FEATURES.md](FEATURES.md) for detailed feature documentation!**
 
 ## Screenshots
 

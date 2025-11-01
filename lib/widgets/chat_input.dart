@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 
 class ChatInput extends StatefulWidget {
-  final Function(String, {String? imageBase64, String? imagePath}) onSendMessage;
+  final Function(String, {String? imageBase64, String? imagePath, bool webSearch}) onSendMessage;
   final bool isLoading;
   final bool supportsVision;
 
@@ -27,6 +27,7 @@ class _ChatInputState extends State<ChatInput> {
   bool _hasText = false;
   XFile? _selectedImage;
   String? _imageBase64;
+  bool _webSearchEnabled = false;
   
   bool get _isDesktop {
     return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -75,6 +76,60 @@ class _ChatInputState extends State<ChatInput> {
     }
   }
 
+  Future<void> _pickImageFromCamera() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        // Read the image file and convert to base64
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedImage = image;
+          _imageBase64 = base64Encode(bytes);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to take photo: $e')),
+        );
+      }
+    }
+  }
+
+  void _showFilePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImageFromCamera();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _removeImage() {
     setState(() {
       _selectedImage = null;
@@ -88,6 +143,7 @@ class _ChatInputState extends State<ChatInput> {
         _controller.text.trim(),
         imageBase64: _imageBase64,
         imagePath: _selectedImage?.path,
+        webSearch: _webSearchEnabled,
       );
       _controller.clear();
       setState(() {
@@ -163,11 +219,37 @@ class _ChatInputState extends State<ChatInput> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.image, color: Colors.white70),
-                      onPressed: widget.isLoading ? null : _pickImage,
+                      icon: const Icon(Icons.add_photo_alternate, color: Colors.white70),
+                      onPressed: widget.isLoading ? null : _showFilePickerOptions,
                       tooltip: 'Attach image',
                     ),
                   ),
+                // Web search toggle button
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: _webSearchEnabled 
+                        ? const Color(0xFF3B82F6).withOpacity(0.3)
+                        : const Color(0xFF1A1A1A),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.search,
+                      color: _webSearchEnabled 
+                          ? const Color(0xFF3B82F6)
+                          : Colors.white70,
+                    ),
+                    onPressed: widget.isLoading ? null : () {
+                      setState(() {
+                        _webSearchEnabled = !_webSearchEnabled;
+                      });
+                    },
+                    tooltip: _webSearchEnabled 
+                        ? 'Web search enabled' 
+                        : 'Enable web search',
+                  ),
+                ),
                 Expanded(
                   child: RawKeyboardListener(
                     focusNode: FocusNode(), // Temporary focus node for keyboard listener

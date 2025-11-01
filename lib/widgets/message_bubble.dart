@@ -83,6 +83,52 @@ class _MessageBubbleState extends State<MessageBubble>
               ],
             ),
             const SizedBox(height: 4),
+            // Show thinking content if present (for AI messages)
+            if (!isUser && widget.message.thinkingContent != null && widget.message.thinkingContent!.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.blue.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.psychology,
+                          size: 14,
+                          color: Colors.blue.shade300,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Thinking',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.blue.shade300,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.message.thinkingContent!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.7),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (isUser) ...[
               // Show image if present
               if (widget.message.imagePath != null && widget.message.imagePath!.isNotEmpty)
