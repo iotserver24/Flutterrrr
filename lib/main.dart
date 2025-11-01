@@ -8,6 +8,7 @@ import 'providers/settings_provider.dart';
 import 'screens/chat_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/mcp_servers_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/mcp_config_service.dart';
 
 void main() async {
@@ -70,7 +71,7 @@ class XibeChatApp extends StatelessWidget {
             title: 'Xibe Chat',
             debugShowCheckedModeBanner: false,
             theme: themeProvider.themeData,
-            home: const ChatScreen(),
+            home: const SplashWrapper(),
             routes: {
               '/settings': (context) => const SettingsScreen(),
               '/mcp-servers': (context) => const McpServersScreen(),
@@ -79,5 +80,30 @@ class XibeChatApp extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class SplashWrapper extends StatefulWidget {
+  const SplashWrapper({super.key});
+
+  @override
+  State<SplashWrapper> createState() => _SplashWrapperState();
+}
+
+class _SplashWrapperState extends State<SplashWrapper> {
+  bool _showSplash = true;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showSplash) {
+      return SplashScreen(
+        onAnimationComplete: () {
+          setState(() {
+            _showSplash = false;
+          });
+        },
+      );
+    }
+    return const ChatScreen();
   }
 }

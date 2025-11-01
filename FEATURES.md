@@ -71,16 +71,39 @@ Fine-tune AI responses with advanced parameters:
 
 ---
 
-## 🧠 Thinking Indicator
+## 🧠 Think Mode (Deep Reasoning)
 
-See what the AI is thinking before it responds!
+Enable Think Mode to unlock advanced reasoning capabilities in AI responses!
 
-### Features
-- Visual "thinking" animation while AI processes your message
-- Shows reasoning steps for complex queries (when available)
-- Thinking content appears in a blue highlighted box within the message
+### What is Think Mode?
+Think Mode activates the AI's extended reasoning process, allowing it to:
+- Show its thinking process step-by-step
+- Break down complex problems
+- Provide more thorough and well-reasoned responses
+- Display intermediate reasoning steps
 
-This feature helps you understand the AI's reasoning process and provides transparency in how responses are generated.
+### How to Enable Think Mode
+1. Tap the "+" button next to the message input
+2. Look for "AI Options" section at the top
+3. Tap "Think Mode" or toggle the switch
+4. A green badge "Think Mode Active" appears when enabled
+5. Send your message as usual
+
+### Visual Indicators
+- **Green Badge**: Shows when Think Mode is active
+- **Animated Thinking Indicator**: Enhanced animation while AI processes
+- **Rotating Brain Icon**: Visual feedback during reasoning
+- **Reasoning Steps**: AI's thought process displayed in messages
+
+### When to Use Think Mode
+- Complex problem-solving
+- Mathematical computations
+- Logical reasoning tasks
+- Detailed explanations
+- Step-by-step instructions
+- Analysis requiring multiple steps
+
+**Note:** Think Mode may take slightly longer but provides more detailed and well-reasoned responses.
 
 ---
 
@@ -173,11 +196,19 @@ Look for models that support image input:
 - GPT-4 Vision
 - Gemini Pro Vision
 - Claude 3 models
+- Claude 4.5 Haiku (claudy) - Fast and efficient
 - And more!
 
 ---
 
 ## 🎯 Additional Features
+
+### Animated Splash Screen
+- Beautiful animated logo on app startup
+- Logo scales in smoothly
+- High-speed rotation animation
+- Smooth fade transition to main screen
+- Professional, polished first impression
 
 ### Smart Greetings
 - Time-based greetings (Good morning/afternoon/evening)

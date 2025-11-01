@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 
 class ChatInput extends StatefulWidget {
-  final Function(String, {String? imageBase64, String? imagePath, bool webSearch}) onSendMessage;
+  final Function(String, {String? imageBase64, String? imagePath, bool webSearch, bool reasoning}) onSendMessage;
   final bool isLoading;
   final bool supportsVision;
 
@@ -28,6 +28,7 @@ class _ChatInputState extends State<ChatInput> {
   XFile? _selectedImage;
   String? _imageBase64;
   bool _webSearchEnabled = false;
+  bool _reasoningEnabled = false;
   
   bool get _isDesktop {
     return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
@@ -124,7 +125,60 @@ class _ChatInputState extends State<ChatInput> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              // Reasoning Options
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'AI Options',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _reasoningEnabled 
+                        ? const Color(0xFF10B981).withOpacity(0.1)
+                        : Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.psychology,
+                    color: _reasoningEnabled ? const Color(0xFF10B981) : Colors.grey,
+                  ),
+                ),
+                title: const Text('Think Mode'),
+                subtitle: Text(
+                  _reasoningEnabled 
+                      ? 'Enabled - AI will show reasoning process'
+                      : 'Disabled - Enable for deeper reasoning',
+                ),
+                trailing: Switch(
+                  value: _reasoningEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      _reasoningEnabled = value;
+                    });
+                    Navigator.pop(context);
+                  },
+                  activeColor: const Color(0xFF10B981),
+                ),
+                onTap: () {
+                  setState(() {
+                    _reasoningEnabled = !_reasoningEnabled;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
               if (widget.supportsVision) ...[
+                const Divider(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
                   child: Align(
@@ -234,6 +288,7 @@ class _ChatInputState extends State<ChatInput> {
         imageBase64: _imageBase64,
         imagePath: _selectedImage?.path,
         webSearch: _webSearchEnabled,
+        reasoning: _reasoningEnabled,
       );
       _controller.clear();
       setState(() {
@@ -267,6 +322,72 @@ class _ChatInputState extends State<ChatInput> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Reasoning mode indicator with animation
+            if (_reasoningEnabled)
+              TweenAnimationBuilder(
+                duration: const Duration(milliseconds: 300),
+                tween: Tween<double>(begin: 0.0, end: 1.0),
+                builder: (context, double value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 10 * (1 - value)),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.psychology,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Think Mode Active',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _reasoningEnabled = false;
+                          });
+                        },
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             // Image preview with animation
             if (_selectedImage != null)
               TweenAnimationBuilder(
