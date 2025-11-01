@@ -51,10 +51,10 @@ class _ThinkingIndicatorState extends State<ThinkingIndicator>
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [
-              const Color(0xFF1F1F1F),
-              const Color(0xFF2A2A2A),
+              Color(0xFF1F1F1F),
+              Color(0xFF2A2A2A),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/theme_provider.dart' show ThemeProvider, AppTheme;
 import '../providers/chat_provider.dart';
 import '../providers/settings_provider.dart';
@@ -479,10 +480,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: Text(_appVersion),
                 leading: const Icon(Icons.info_outline),
               ),
-              const ListTile(
-                title: Text('Xibe Chat'),
-                subtitle: Text('AI Chat Application'),
-                leading: Icon(Icons.chat_bubble_outline),
+              ListTile(
+                title: const Text('Xibe Chat'),
+                subtitle: const Text('AI Chat Application'),
+                leading: const Icon(Icons.chat_bubble_outline),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                title: const Text('Developer'),
+                subtitle: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 4),
+                    Text('R3AP3Reditz'),
+                    SizedBox(height: 2),
+                    Text(
+                      'A.K.A Anish Kumar - A dev from India',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+                leading: const Icon(Icons.person),
+              ),
+              ListTile(
+                title: const Text('GitHub'),
+                subtitle: const Text('github.com/iotserver24'),
+                leading: const Icon(Icons.code),
+                onTap: () async {
+                  final uri = Uri.parse('https://github.com/iotserver24');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+              ),
+              ListTile(
+                title: const Text('Portfolio'),
+                subtitle: const Text('anishkumar.tech'),
+                leading: const Icon(Icons.public),
+                onTap: () async {
+                  final uri = Uri.parse('https://anishkumar.tech');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
               ),
             ],
           ),

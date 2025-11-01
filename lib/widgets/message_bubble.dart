@@ -44,144 +44,171 @@ class _MessageBubbleState extends State<MessageBubble>
   Widget build(BuildContext context) {
     final isUser = widget.message.role == 'user';
     final timeFormat = DateFormat('HH:mm');
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxWidth = screenWidth > 800 ? 680.0 : screenWidth * 0.85;
 
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.8,
-        ),
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isUser ? const Color(0xFF2563EB) : const Color(0xFF1F1F1F),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  isUser ? '👤 ' : '🤖 ',
-                  style: const TextStyle(fontSize: 16),
-                ),
-                if (widget.message.webSearchUsed)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      '🌐 Web Search',
-                      style: TextStyle(fontSize: 10, color: Colors.green),
-                    ),
-                  ),
-              ],
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: screenWidth > 800 ? 40 : 20,
+        vertical: 6,
+      ),
+      child: Row(
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isUser) ...[
+            Container(
+              width: 32,
+              height: 32,
+              margin: const EdgeInsets.only(top: 2),
+              decoration: const BoxDecoration(
+                color: Color(0xFF10A37F),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.smart_toy, size: 18, color: Colors.white),
             ),
-            const SizedBox(height: 4),
-            // Show thinking content if present (for AI messages)
-            if (!isUser && widget.message.thinkingContent != null && widget.message.thinkingContent!.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.blue.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.psychology,
-                          size: 14,
-                          color: Colors.blue.shade300,
+            const SizedBox(width: 10),
+          ],
+          Flexible(
+              child: Container(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: isUser ? const Color(0xFF0A0A0A) : const Color(0xFF0F0F0F),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Web search badge
+                  if (widget.message.webSearchUsed) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: const Color(0xFF10B981).withOpacity(0.4),
+                          width: 1,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Thinking',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.blue.shade300,
-                            fontWeight: FontWeight.bold,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.language, size: 12, color: Color(0xFF10B981)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Web Search',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: const Color(0xFF10B981),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.message.thinkingContent!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.7),
-                        fontStyle: FontStyle.italic,
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ),
-            if (isUser) ...[
-              // Show image if present
-              if (widget.message.imagePath != null && widget.message.imagePath!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      File(widget.message.imagePath!),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          padding: const EdgeInsets.all(8),
-                          color: Colors.black26,
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
+                  // Thinking content
+                  if (!isUser && widget.message.thinkingContent != null && widget.message.thinkingContent!.isNotEmpty) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E3A8A).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFF3B82F6).withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Icon(Icons.broken_image, color: Colors.white70, size: 16),
-                              SizedBox(width: 4),
-                              Text('Image unavailable', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              const Icon(Icons.psychology, size: 14, color: Color(0xFF60A5FA)),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Thinking',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: const Color(0xFF60A5FA),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
-                        );
-                      },
+                          const SizedBox(height: 6),
+                          Text(
+                            widget.message.thinkingContent!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withOpacity(0.8),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-              Text(
-                widget.message.content,
-                style: const TextStyle(color: Colors.white),
-              ),
-            ]
-            else
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: MarkdownBody(
+                  ],
+                  // Message content
+                  if (isUser) ...[
+                    if (widget.message.imagePath != null && widget.message.imagePath!.isNotEmpty) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          File(widget.message.imagePath!),
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              color: Colors.black.withOpacity(0.3),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.broken_image, color: Colors.white70, size: 16),
+                                  SizedBox(width: 6),
+                                  Text('Image unavailable', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    Text(
+                      widget.message.content,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        height: 1.6,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                  ]
+                  else ...[
+                    MarkdownBody(
                       data: widget.message.content,
                       styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(color: Colors.white),
-                        h1: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-                        h2: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                        h3: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                        listBullet: const TextStyle(color: Colors.white),
-                        tableBody: const TextStyle(color: Colors.white),
+                        p: TextStyle(color: const Color(0xFFE8EAED), fontSize: 15, height: 1.7, letterSpacing: 0.1),
+                        h1: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, height: 1.4),
+                        h2: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, height: 1.4),
+                        h3: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, height: 1.4),
+                        listBullet: TextStyle(color: Colors.white.withOpacity(0.9)),
+                        tableBody: TextStyle(color: Colors.white.withOpacity(0.9)),
                         code: TextStyle(
                           backgroundColor: Colors.black.withOpacity(0.3),
-                          color: Colors.green,
+                          color: const Color(0xFF34D399),
                           fontFamily: 'monospace',
+                          fontSize: 13,
                         ),
                         codeblockDecoration: BoxDecoration(
-                          color: Colors.transparent,
+                          color: Colors.black.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -190,74 +217,79 @@ class _MessageBubbleState extends State<MessageBubble>
                       },
                       extensionSet: md.ExtensionSet.gitHubFlavored,
                     ),
-                  ),
-                  // Add blinking cursor for streaming messages
-                  if (widget.isStreaming)
-                    AnimatedBuilder(
-                      animation: _cursorController,
-                      builder: (context, child) {
-                        return Opacity(
-                          opacity: _cursorController.value,
-                          child: Container(
-                            margin: const EdgeInsets.only(left: 2, top: 2),
-                            width: 8,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(1),
+                    if (widget.isStreaming)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: AnimatedBuilder(
+                          animation: _cursorController,
+                          builder: (context, child) {
+                            return Opacity(
+                              opacity: _cursorController.value,
+                              child: Container(
+                                width: 2,
+                                height: 16,
+                                color: Colors.white,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                  // Footer with time and copy
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.isStreaming)
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isUser ? Colors.white.withOpacity(0.7) : Colors.white.withOpacity(0.6),
                             ),
                           ),
-                        );
-                      },
-                    ),
+                        )
+                      else ...[
+                        Text(
+                          timeFormat.format(widget.message.timestamp),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isUser ? Colors.white.withOpacity(0.7) : Colors.white.withOpacity(0.5),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: widget.message.content));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Copied to clipboard'),
+                                duration: const Duration(seconds: 1),
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: const Color(0xFF1F1F1F),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            );
+                          },
+                          child: Icon(
+                            Icons.copy_outlined,
+                            size: 14,
+                            color: isUser ? Colors.white.withOpacity(0.7) : Colors.white.withOpacity(0.5),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.isStreaming)
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    child: const SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                      ),
-                    ),
-                  )
-                else
-                  Text(
-                    timeFormat.format(widget.message.timestamp),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.white.withOpacity(0.6),
-                    ),
-                  ),
-                if (!widget.isStreaming) const SizedBox(width: 8),
-                if (!widget.isStreaming)
-                  InkWell(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: widget.message.content));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Message copied to clipboard'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                    child: Icon(
-                      Icons.copy,
-                      size: 14,
-                      color: Colors.white.withOpacity(0.6),
-                    ),
-                  ),
-              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

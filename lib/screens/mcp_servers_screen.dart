@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../models/mcp_config.dart';
 import '../services/mcp_config_service.dart';
+import '../providers/chat_provider.dart';
 
 class McpServersScreen extends StatefulWidget {
   const McpServersScreen({super.key});
@@ -134,6 +136,9 @@ class _McpServersScreenState extends State<McpServersScreen> {
                   await _loadServers();
                   if (context.mounted) {
                     Navigator.pop(context);
+                    // Reload MCP connections in ChatProvider
+                    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+                    await chatProvider.reloadMcpServers();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Server added successfully')),
                     );
@@ -265,6 +270,9 @@ class _McpServersScreenState extends State<McpServersScreen> {
                   Navigator.pop(context);
                   if (success) {
                     await _loadServers();
+                    // Reload MCP connections in ChatProvider
+                    final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+                    await chatProvider.reloadMcpServers();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Configuration imported successfully'),
@@ -533,6 +541,9 @@ class _McpServersScreenState extends State<McpServersScreen> {
                           _serverStates[serverName] = value;
                           _servers[serverName] = updatedConfig;
                         });
+                        // Reload MCP connections in ChatProvider
+                        final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+                        chatProvider.reloadMcpServers();
                       },
                     ),
                     children: [
@@ -591,6 +602,9 @@ class _McpServersScreenState extends State<McpServersScreen> {
                                       await _configService.removeServer(serverName);
                                       await _loadServers();
                                       if (context.mounted) {
+                                        // Reload MCP connections in ChatProvider
+                                        final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+                                        await chatProvider.reloadMcpServers();
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
                                             content: Text('Server deleted successfully'),

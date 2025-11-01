@@ -68,6 +68,7 @@ class XibeChatApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
+            key: const ValueKey('xibe_chat_app'),
             title: 'Xibe Chat',
             debugShowCheckedModeBanner: false,
             theme: themeProvider.themeData,
@@ -75,6 +76,12 @@ class XibeChatApp extends StatelessWidget {
             routes: {
               '/settings': (context) => const SettingsScreen(),
               '/mcp-servers': (context) => const McpServersScreen(),
+            },
+            onUnknownRoute: (settings) {
+              // Handle unknown routes - always return to home
+              return MaterialPageRoute(
+                builder: (_) => const SplashWrapper(),
+              );
             },
           );
         },

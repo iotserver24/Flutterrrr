@@ -94,7 +94,7 @@ class _CodeBlockState extends State<CodeBlock> {
           'template': template,
           'timeout': _sandboxLifetimeSeconds,
         }),
-      ).timeout(Duration(seconds: _sandboxCreateTimeoutSeconds));
+      ).timeout(const Duration(seconds: _sandboxCreateTimeoutSeconds));
 
       if (createResponse.statusCode == 401) {
         throw Exception('Invalid E2B API key. Please check your settings.');
@@ -132,7 +132,7 @@ class _CodeBlockState extends State<CodeBlock> {
           'command': command,
           'timeout': 60000,
         }),
-      ).timeout(Duration(seconds: _codeExecutionTimeoutSeconds));
+      ).timeout(const Duration(seconds: _codeExecutionTimeoutSeconds));
 
       if (execResponse.statusCode == 200) {
         final result = jsonDecode(execResponse.body);
@@ -158,7 +158,7 @@ class _CodeBlockState extends State<CodeBlock> {
           headers: {
             'Authorization': 'Bearer $e2bApiKey',
           },
-        ).timeout(Duration(seconds: _sandboxCleanupTimeoutSeconds));
+        ).timeout(const Duration(seconds: _sandboxCleanupTimeoutSeconds));
       } catch (e) {
         // Ignore cleanup errors - sandbox will auto-expire
       }

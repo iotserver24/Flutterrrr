@@ -49,7 +49,7 @@ class Message {
       imageBase64: map['imageBase64'],
       imagePath: map['imagePath'],
       thinkingContent: map['thinkingContent'],
-      isThinking: map['isThinking'] == 1,
+      isThinking: map['isThinking'] != null && map['isThinking'] == 1,
     );
   }
 

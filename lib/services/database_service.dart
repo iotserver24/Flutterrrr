@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -49,7 +48,7 @@ class DatabaseService {
     
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE chats(
@@ -69,6 +68,8 @@ class DatabaseService {
             chatId INTEGER NOT NULL,
             imageBase64 TEXT,
             imagePath TEXT,
+            thinkingContent TEXT,
+            isThinking INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (chatId) REFERENCES chats (id) ON DELETE CASCADE
           )
         ''');
@@ -78,6 +79,14 @@ class DatabaseService {
           // Add image columns for version 2
           await db.execute('ALTER TABLE messages ADD COLUMN imageBase64 TEXT');
           await db.execute('ALTER TABLE messages ADD COLUMN imagePath TEXT');
+        }
+        if (oldVersion < 3) {
+          // Add thinking columns for version 3
+          // SQLite doesn't support NOT NULL with DEFAULT in ALTER TABLE, so we make it nullable
+          await db.execute('ALTER TABLE messages ADD COLUMN thinkingContent TEXT');
+          await db.execute('ALTER TABLE messages ADD COLUMN isThinking INTEGER DEFAULT 0');
+          // Update existing rows to have isThinking = 0
+          await db.update('messages', {'isThinking': 0}, where: 'isThinking IS NULL');
         }
       },
     );

@@ -60,24 +60,57 @@ class ThemeProvider extends ChangeNotifier {
 
   ThemeData _darkTheme() {
     return ThemeData(
+      useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF0D0D0D),
-      primaryColor: const Color(0xFF3B82F6),
+      scaffoldBackgroundColor: Colors.black,
+      primaryColor: const Color(0xFF10A37F),
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF3B82F6),
-        secondary: Color(0xFF2563EB),
-        surface: Color(0xFF1A1A1A),
+        primary: Color(0xFF10A37F),
+        secondary: Color(0xFF10A37F),
+        surface: Colors.black,
+        surfaceVariant: Color(0xFF0A0A0A),
+        onSurface: Colors.white,
+        onPrimary: Colors.white,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF0D0D0D),
+        backgroundColor: Colors.black,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: Colors.white,
       ),
-      inputDecorationTheme: const InputDecorationTheme(
+      cardTheme: CardThemeData(
+        color: const Color(0xFF1A1A1A),
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        shadowColor: Colors.black.withOpacity(0.3),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Color(0xFF1A1A1A),
+        fillColor: const Color(0xFF1A1A1A),
         border: OutlineInputBorder(
           borderSide: BorderSide.none,
-          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 2,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );

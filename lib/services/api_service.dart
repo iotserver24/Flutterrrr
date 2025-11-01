@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../models/message.dart';
 import '../models/ai_model.dart';
+import '../services/mcp_client_service.dart';
 
 class ApiService {
   static const String baseUrl = 'https://api.xibe.app';
@@ -41,6 +42,7 @@ class ApiService {
     required String model,
     String? systemPrompt,
     bool reasoning = false,
+    List<McpTool>? mcpTools,
   }) async* {
     try {
       final request = http.Request(
@@ -66,6 +68,16 @@ class ApiService {
         'messages': messages,
         'stream': true,
         if (reasoning) 'reasoning': true,
+        // Include MCP tools if available
+        if (mcpTools != null && mcpTools.isNotEmpty)
+          'tools': mcpTools.map((tool) => {
+            'type': 'function',
+            'function': {
+              'name': tool.name,
+              'description': tool.description,
+              'parameters': tool.inputSchema ?? {},
+            }
+          }).toList(),
       };
 
       request.body = jsonEncode(requestBody);
