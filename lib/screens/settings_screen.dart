@@ -50,6 +50,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth > 600;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -58,7 +61,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: isWideScreen ? 800 : double.infinity,
+          ),
+          child: ListView(
         children: [
           const SizedBox(height: 16),
           _buildSection(
@@ -318,23 +326,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ),
-                      ListTile(
-                        title: const Text('Max Tokens'),
-                        subtitle: Text('${settingsProvider.maxTokens} - Maximum response length'),
-                        trailing: SizedBox(
-                          width: 200,
-                          child: Slider(
-                            value: settingsProvider.maxTokens.toDouble(),
-                            min: 256,
-                            max: 8192,
-                            divisions: 31,
-                            label: settingsProvider.maxTokens.toString(),
-                            onChanged: (value) {
-                              settingsProvider.setMaxTokens(value.toInt());
-                            },
-                          ),
-                        ),
-                      ),
+                      // Max Tokens setting removed as per requirement
                       ListTile(
                         title: const Text('Top P'),
                         subtitle: Text('${settingsProvider.topP.toStringAsFixed(2)} - Nucleus sampling'),
@@ -494,7 +486,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
-        ],
+          ],
+        ),
+        ),
       ),
     );
   }

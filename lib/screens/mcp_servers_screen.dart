@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/mcp_server.dart';
+import 'package:flutter/services.dart';
+import '../models/mcp_config.dart';
+import '../services/mcp_config_service.dart';
 
 class McpServersScreen extends StatefulWidget {
   const McpServersScreen({super.key});
@@ -9,7 +11,10 @@ class McpServersScreen extends StatefulWidget {
 }
 
 class _McpServersScreenState extends State<McpServersScreen> {
-  final List<McpServer> _servers = [];
+  final McpConfigService _configService = McpConfigService();
+  Map<String, McpServerConfig> _servers = {};
+  Map<String, bool> _serverStates = {}; // Track on/off state
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -18,61 +23,233 @@ class _McpServersScreenState extends State<McpServersScreen> {
   }
 
   Future<void> _loadServers() async {
-    // TODO: Load from database
     setState(() {
-      // Example servers
+      _isLoading = true;
+    });
+    
+    final config = await _configService.loadConfiguration();
+    setState(() {
+      _servers = config.mcpServers;
+      // Load enabled state from configuration
+      _serverStates = {
+        for (var entry in _servers.entries)
+          entry.key: entry.value.isEnabled
+      };
+      _isLoading = false;
     });
   }
 
   void _showAddServerDialog() {
     final nameController = TextEditingController();
     final urlController = TextEditingController();
-    final apiKeyController = TextEditingController();
-    final descriptionController = TextEditingController();
+    final commandController = TextEditingController();
+    final argsController = TextEditingController();
+    bool useUrl = false;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add MCP Server'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Server Name',
-                  hintText: 'e.g., My MCP Server',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text(
+            'Add MCP Server',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Server Name',
+                    hintText: 'e.g., my-mcp-server',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: urlController,
-                decoration: const InputDecoration(
-                  labelText: 'Server URL',
-                  hintText: 'e.g., https://mcp.example.com',
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  title: const Text('Use URL-based server'),
+                  value: useUrl,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      useUrl = value;
+                    });
+                  },
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: apiKeyController,
-                decoration: const InputDecoration(
-                  labelText: 'API Key (Optional)',
-                  hintText: 'Enter API key if required',
+                const SizedBox(height: 12),
+                if (useUrl) ...[
+                  TextField(
+                    controller: urlController,
+                    decoration: const InputDecoration(
+                      labelText: 'Server URL',
+                      hintText: 'e.g., https://mcp.example.com',
+                    ),
+                  ),
+                ] else ...[
+                  TextField(
+                    controller: commandController,
+                    decoration: const InputDecoration(
+                      labelText: 'Command',
+                      hintText: 'e.g., npx',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: argsController,
+                    decoration: const InputDecoration(
+                      labelText: 'Arguments (comma-separated)',
+                      hintText: 'e.g., -y, @browsermcp/mcp@latest',
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (nameController.text.isNotEmpty) {
+                  final config = useUrl
+                      ? McpServerConfig(
+                          url: urlController.text,
+                          headers: {},
+                        )
+                      : McpServerConfig(
+                          command: commandController.text,
+                          args: argsController.text
+                              .split(',')
+                              .map((e) => e.trim())
+                              .where((e) => e.isNotEmpty)
+                              .toList(),
+                        );
+                  
+                  await _configService.addOrUpdateServer(nameController.text, config);
+                  await _loadServers();
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Server added successfully')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportConfiguration() async {
+    try {
+      final jsonString = await _configService.exportConfiguration();
+      await Clipboard.setData(ClipboardData(text: jsonString));
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Configuration Exported'),
+              ],
+            ),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Your MCP configuration has been copied to the clipboard!'),
+                SizedBox(height: 12),
+                Text(
+                  'You can now paste it into other apps or save it to a file.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
-                obscureText: true,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  hintText: 'Brief description of the server',
-                ),
-                maxLines: 3,
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
               ),
             ],
           ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting configuration: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showImportDialog() async {
+    final TextEditingController importController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.file_download, color: Color(0xFF3B82F6)),
+            SizedBox(width: 8),
+            Text('Import Configuration'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Paste your MCP configuration JSON here:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: importController,
+              maxLines: 10,
+              decoration: InputDecoration(
+                hintText: '{\n  "mcpServers": {\n    ...\n  }\n}',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade900,
+              ),
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'This will replace your current configuration.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.orange.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -80,31 +257,111 @@ class _McpServersScreenState extends State<McpServersScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty &&
-                  urlController.text.isNotEmpty) {
-                final server = McpServer(
-                  name: nameController.text,
-                  url: urlController.text,
-                  apiKey: apiKeyController.text.isEmpty
-                      ? null
-                      : apiKeyController.text,
-                  description: descriptionController.text,
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                );
-                // TODO: Save to database
-                setState(() {
-                  _servers.add(server);
-                });
-                Navigator.pop(context);
+            onPressed: () async {
+              final jsonString = importController.text.trim();
+              if (jsonString.isNotEmpty) {
+                final success = await _configService.importConfiguration(jsonString);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  if (success) {
+                    await _loadServers();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Configuration imported successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to import configuration. Check JSON format.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               }
             },
-            child: const Text('Add'),
+            child: const Text('Import'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _showConfigFileLocation() async {
+    final filePath = await _configService.getConfigFilePath();
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.folder_open, color: Color(0xFF3B82F6)),
+              SizedBox(width: 8),
+              Text('Configuration File'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'MCP servers are stored in a JSON configuration file:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade900,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade700),
+                ),
+                child: SelectableText(
+                  filePath,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You can edit this file directly or use the app interface.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: filePath));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Path copied to clipboard'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Copy Path'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -113,6 +370,55 @@ class _McpServersScreenState extends State<McpServersScreen> {
       appBar: AppBar(
         title: const Text('MCP Servers'),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More options',
+            onSelected: (value) {
+              switch (value) {
+                case 'location':
+                  _showConfigFileLocation();
+                  break;
+                case 'export':
+                  _exportConfiguration();
+                  break;
+                case 'import':
+                  _showImportDialog();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'location',
+                child: Row(
+                  children: [
+                    Icon(Icons.folder_open),
+                    SizedBox(width: 8),
+                    Text('Show File Location'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_upload),
+                    SizedBox(width: 8),
+                    Text('Export Configuration'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'import',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download),
+                    SizedBox(width: 8),
+                    Text('Import Configuration'),
+                  ],
+                ),
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _showAddServerDialog,
@@ -120,130 +426,217 @@ class _McpServersScreenState extends State<McpServersScreen> {
           ),
         ],
       ),
-      body: _servers.isEmpty
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _servers.isEmpty
           ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.dns_outlined,
-                    size: 64,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No MCP Servers configured',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 32),
-                    child: Text(
-                      'MCP (Model Context Protocol) servers provide additional context and tools for AI models',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.dns_outlined,
+                            size: 64,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No MCP Servers configured',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Text(
+                              'MCP (Model Context Protocol) servers provide additional context and tools for AI models',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: _showAddServerDialog,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add Server'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3B82F6),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _showAddServerDialog,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Server'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3B82F6),
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
             )
           : ListView.builder(
               itemCount: _servers.length,
               itemBuilder: (context, index) {
-                final server = _servers[index];
+                final entry = _servers.entries.elementAt(index);
+                final serverName = entry.key;
+                final serverConfig = entry.value;
+                final isEnabled = _serverStates[serverName] ?? true;
+                
                 return Card(
                   margin: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  child: ListTile(
+                  child: ExpansionTile(
                     leading: CircleAvatar(
-                      backgroundColor: server.isEnabled
+                      backgroundColor: isEnabled
                           ? Colors.green
                           : Colors.grey,
                       child: Icon(
-                        server.isEnabled ? Icons.check : Icons.close,
+                        isEnabled ? Icons.check_circle : Icons.cancel,
                         color: Colors.white,
+                        size: 20,
                       ),
                     ),
-                    title: Text(server.name),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(server.url),
-                        if (server.description.isNotEmpty)
-                          Text(
-                            server.description,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                      ],
+                    title: Text(
+                      serverName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    trailing: PopupMenuButton(
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          child: ListTile(
-                            leading: Icon(
-                              server.isEnabled
-                                  ? Icons.toggle_on
-                                  : Icons.toggle_off,
-                            ),
-                            title: Text(
-                              server.isEnabled ? 'Disable' : 'Enable',
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _servers[index] = server.copyWith(
-                                isEnabled: !server.isEnabled,
-                              );
-                            });
-                          },
-                        ),
-                        PopupMenuItem(
-                          child: const ListTile(
-                            leading: Icon(Icons.edit),
-                            title: Text('Edit'),
-                          ),
-                          onTap: () {
-                            // TODO: Implement edit
-                          },
-                        ),
-                        PopupMenuItem(
-                          child: const ListTile(
-                            leading: Icon(Icons.delete, color: Colors.red),
-                            title: Text(
-                              'Delete',
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _servers.removeAt(index);
-                            });
-                          },
-                        ),
-                      ],
+                    subtitle: Text(
+                      serverConfig.url?.isNotEmpty == true 
+                          ? 'URL: ${serverConfig.url}'
+                          : 'Command: ${serverConfig.command}',
+                      style: const TextStyle(fontSize: 12),
                     ),
+                    trailing: Switch(
+                      value: isEnabled,
+                      onChanged: (value) async {
+                        // Update the server config with new enabled state
+                        final updatedConfig = serverConfig.copyWith(isEnabled: value);
+                        await _configService.addOrUpdateServer(serverName, updatedConfig);
+                        
+                        setState(() {
+                          _serverStates[serverName] = value;
+                          _servers[serverName] = updatedConfig;
+                        });
+                      },
+                    ),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (serverConfig.url?.isNotEmpty == true) ...[
+                              _buildDetailRow('URL', serverConfig.url!),
+                              if (serverConfig.headers?.isNotEmpty == true)
+                                _buildDetailRow('Headers', serverConfig.headers.toString()),
+                            ] else ...[
+                              _buildDetailRow('Command', serverConfig.command),
+                              if (serverConfig.args.isNotEmpty)
+                                _buildDetailRow('Arguments', serverConfig.args.join(', ')),
+                              if (serverConfig.env?.isNotEmpty == true)
+                                _buildDetailRow('Environment', 
+                                    serverConfig.env!.keys.join(', ')),
+                            ],
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  icon: const Icon(Icons.delete, size: 18),
+                                  label: const Text('Delete'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Delete Server'),
+                                        content: Text(
+                                          'Are you sure you want to delete "$serverName"?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, true),
+                                            child: const Text(
+                                              'Delete',
+                                              style: TextStyle(color: Colors.red),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    
+                                    if (confirm == true) {
+                                      await _configService.removeServer(serverName);
+                                      await _loadServers();
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Server deleted successfully'),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
             ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
