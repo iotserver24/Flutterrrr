@@ -63,7 +63,7 @@ jobs:
             # Create key.properties file
             echo "storePassword=$KEYSTORE_PASSWORD" > android/key.properties
             echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
-            echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+            echo "keyAlias=${KEY_ALIAS:-xibe_chat_key}" >> android/key.properties
             echo "storeFile=xibe-chat-app.jks" >> android/key.properties
             echo "✅ Release signing configured"
           else
