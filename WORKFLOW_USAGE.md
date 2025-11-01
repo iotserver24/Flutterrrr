@@ -10,15 +10,19 @@ The comprehensive GitHub Actions workflow builds and releases Xibe Chat for **al
 
 1. Go to your repository: https://github.com/iotserver24/Flutterrrr
 2. Click on the "Actions" tab
-3. Select "Build and Release" workflow from the left sidebar
+3. Select "**Multi-Platform Build and Release**" workflow from the left sidebar (recommended)
+   - Alternatively, you can use "Build and Release" for the legacy workflow (Android + Windows only)
 4. Click "Run workflow" button (top right)
+5. Ensure you're running from the **main** branch (workflows only run from the default branch)
 
 ### 2. Provide Required Inputs
 
 When you click "Run workflow", you'll be prompted to enter:
 
-- **Version number**: Semantic version (e.g., `1.0.0`, `2.1.3`)
-- **Build number**: Integer build number (e.g., `1`, `2`, `100`)
+- **Version number**: Semantic version (e.g., `1.0.0`, `2.1.3`) - Default: `1.0.0`
+- **Build number**: Integer build number (e.g., `1`, `2`, `100`) - Default: `1`
+
+**Note**: The input fields will be pre-filled with default values. You can either use these defaults or change them to your desired version.
 
 Example:
 - Version: `1.0.0`
@@ -224,10 +228,16 @@ cd xibe-chat-linux-x64-*
 
 ## Troubleshooting
 
-### Workflow Fails to Start
-- Check that you're on the correct branch
-- Ensure you have necessary permissions (write access)
-- Verify GitHub Actions is enabled for the repository
+### Workflow Fails to Start or Doesn't Run
+
+**If the workflow doesn't appear to run after clicking "Run workflow":**
+- **Check the branch**: Workflow must be triggered from the **main** (default) branch. The "Use workflow from" dropdown should show "Branch: main"
+- **Verify inputs**: The version and build_number fields should show default values (1.0.0 and 1). If they're blank, there may be a browser cache issue - try refreshing the page
+- **Check permissions**: Ensure you have necessary permissions (write access to the repository)
+- **Verify GitHub Actions is enabled**: Check repository Settings → Actions → General
+- **Look for the workflow run**: After clicking "Run workflow", the page should refresh and show the new run at the top of the list
+- **Browser issues**: Try clearing cache or using a different browser if the UI seems unresponsive
+- **Wait a moment**: Sometimes there's a brief delay before the workflow appears in the list
 
 ### Build Failures
 

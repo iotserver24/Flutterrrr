@@ -7,10 +7,12 @@ on:
         description: 'Version number (e.g., 1.0.0)'
         required: true
         type: string
+        default: '1.0.0'
       build_number:
         description: 'Build number (e.g., 1)'
         required: true
         type: string
+        default: '1'
 
 jobs:
   build-android:
