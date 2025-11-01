@@ -237,6 +237,6 @@ class ChatDrawer extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
