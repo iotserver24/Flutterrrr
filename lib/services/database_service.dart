@@ -1,10 +1,30 @@
+import 'dart:io';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
 
 class DatabaseService {
   static Database? _database;
+  static bool _initialized = false;
+
+  static void _initializeDatabaseFactory() {
+    if (_initialized) return;
+    
+    // Initialize FFI for desktop platforms
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      try {
+        sqfliteFfiInit();
+        databaseFactory = databaseFactoryFfi;
+      } catch (e) {
+        throw Exception('Failed to initialize desktop database: $e. '
+            'Ensure sqflite_common_ffi is properly installed and platform libraries are available.');
+      }
+    }
+    _initialized = true;
+  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -13,7 +33,20 @@ class DatabaseService {
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'xibe_chat.db');
+    _initializeDatabaseFactory();
+    
+    String path;
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      // For desktop platforms, use application documents directory
+      final Directory appDocDir = await getApplicationDocumentsDirectory();
+      final String dbDir = join(appDocDir.path, 'XibeChat');
+      await Directory(dbDir).create(recursive: true);
+      path = join(dbDir, 'xibe_chat.db');
+    } else {
+      // For mobile platforms, use default databases path
+      path = join(await getDatabasesPath(), 'xibe_chat.db');
+    }
+    
     return await openDatabase(
       path,
       version: 1,
