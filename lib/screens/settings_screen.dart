@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/theme_provider.dart';
 import '../providers/chat_provider.dart';
 import '../providers/settings_provider.dart';
@@ -14,15 +15,27 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _apiKeyController = TextEditingController();
   final TextEditingController _systemPromptController = TextEditingController();
+  final TextEditingController _e2bApiKeyController = TextEditingController();
   bool _isObscured = true;
+  bool _isE2bObscured = true;
+  String _appVersion = '1.0.0';
 
   @override
   void initState() {
     super.initState();
+    _loadAppVersion();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
       _apiKeyController.text = settingsProvider.apiKey ?? '';
       _systemPromptController.text = settingsProvider.systemPrompt ?? '';
+      _e2bApiKeyController.text = settingsProvider.e2bApiKey ?? '';
+    });
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
     });
   }
 
@@ -30,6 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _apiKeyController.dispose();
     _systemPromptController.dispose();
+    _e2bApiKeyController.dispose();
     super.dispose();
   }
 
@@ -185,6 +199,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'E2B API Key',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Enter your E2B API key to enable code execution sandbox. Get your key from https://e2b.dev',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _e2bApiKeyController,
+                      obscureText: _isE2bObscured,
+                      decoration: InputDecoration(
+                        hintText: 'Enter E2B API key (optional)',
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                _isE2bObscured ? Icons.visibility : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isE2bObscured = !_isE2bObscured;
+                                });
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.save, color: Colors.green),
+                              onPressed: () async {
+                                final apiKey = _e2bApiKeyController.text.trim();
+                                final settingsProvider =
+                                    Provider.of<SettingsProvider>(context, listen: false);
+                                
+                                await settingsProvider.setE2bApiKey(
+                                  apiKey.isEmpty ? null : apiKey,
+                                );
+                                
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('E2B API key saved successfully'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const Divider(),
@@ -258,10 +339,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             context,
             'About',
             [
-              const ListTile(
-                title: Text('App Version'),
-                subtitle: Text('1.0.0'),
-                leading: Icon(Icons.info_outline),
+              ListTile(
+                title: const Text('App Version'),
+                subtitle: Text(_appVersion),
+                leading: const Icon(Icons.info_outline),
               ),
               const ListTile(
                 title: Text('Xibe Chat'),

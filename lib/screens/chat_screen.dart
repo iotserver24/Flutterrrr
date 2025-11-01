@@ -584,7 +584,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         _scrollToBottom();
                       });
 
-                      final showGreeting = chatProvider.messages.isEmpty && !chatProvider.isLoading;
+                      final showGreeting = chatProvider.messages.isEmpty;
                       final itemCount = chatProvider.messages.length +
                           (showGreeting ? 1 : 0) +
                           (chatProvider.isStreaming ? 1 : 0) +

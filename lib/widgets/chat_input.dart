@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 
@@ -22,9 +23,14 @@ class ChatInput extends StatefulWidget {
 class _ChatInputState extends State<ChatInput> {
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
+  final FocusNode _focusNode = FocusNode();
   bool _hasText = false;
   XFile? _selectedImage;
   String? _imageBase64;
+  
+  bool get _isDesktop {
+    return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+  }
 
   @override
   void initState() {
@@ -39,6 +45,7 @@ class _ChatInputState extends State<ChatInput> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -162,28 +169,52 @@ class _ChatInputState extends State<ChatInput> {
                     ),
                   ),
                 Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    enabled: !widget.isLoading,
-                    maxLines: null,
-                    textInputAction: TextInputAction.newline,
-                    decoration: InputDecoration(
-                      hintText: widget.supportsVision 
-                          ? 'Type a message or attach an image...'
-                          : 'Type a message...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
+                  child: RawKeyboardListener(
+                    focusNode: FocusNode(), // Temporary focus node for keyboard listener
+                    onKey: (RawKeyEvent event) {
+                      // On desktop: Enter sends, Ctrl+Enter adds new line
+                      if (_isDesktop && event is RawKeyDownEvent) {
+                        if (event.logicalKey == LogicalKeyboardKey.enter) {
+                          if (!event.isControlPressed) {
+                            // Enter without Ctrl: send message
+                            _sendMessage();
+                          }
+                          // Ctrl+Enter: allow default behavior (new line)
+                        }
+                      }
+                    },
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      enabled: !widget.isLoading,
+                      maxLines: null,
+                      textInputAction: _isDesktop ? TextInputAction.newline : TextInputAction.send,
+                      decoration: InputDecoration(
+                        hintText: widget.supportsVision 
+                            ? (_isDesktop 
+                                ? 'Type a message (Enter to send, Ctrl+Enter for new line)...'
+                                : 'Type a message or attach an image...')
+                            : (_isDesktop
+                                ? 'Type a message (Enter to send, Ctrl+Enter for new line)...'
+                                : 'Type a message...'),
+                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF1A1A1A),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
-                      filled: true,
-                      fillColor: const Color(0xFF1A1A1A),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+                      onSubmitted: (_) {
+                        if (!_isDesktop) {
+                          _sendMessage();
+                        }
+                      },
                     ),
-                    onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
                 const SizedBox(width: 8),
