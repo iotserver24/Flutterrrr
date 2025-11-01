@@ -48,6 +48,12 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate app icons
+        run: |
+          echo "🎨 Generating app icons..."
+          flutter pub run flutter_launcher_icons
+          echo "✅ App icons generated"
+
       - name: Setup Android signing
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -134,6 +140,13 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Generate app icons
+        run: |
+          Write-Host "🎨 Generating app icons..."
+          flutter pub run flutter_launcher_icons
+          Write-Host "✅ App icons generated"
+        shell: powershell
 
       - name: Build Windows Release (${{ matrix.arch }})
         run: |
@@ -313,6 +326,12 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate app icons
+        run: |
+          echo "🎨 Generating app icons..."
+          flutter pub run flutter_launcher_icons
+          echo "✅ App icons generated"
+
       - name: Build macOS app
         run: |
           # Flutter builds universal binaries by default for macOS (both Intel and Apple Silicon)
@@ -389,6 +408,12 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Generate app icons
+        run: |
+          echo "🎨 Generating app icons..."
+          flutter pub run flutter_launcher_icons
+          echo "✅ App icons generated"
 
       - name: Build Linux Release
         run: flutter build linux --release
@@ -527,6 +552,12 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Generate app icons
+        run: |
+          echo "🎨 Generating app icons..."
+          flutter pub run flutter_launcher_icons
+          echo "✅ App icons generated"
 
       - name: Build iOS (unsigned)
         run: |

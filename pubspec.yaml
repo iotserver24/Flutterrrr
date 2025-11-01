@@ -60,5 +60,5 @@ msix_config:
   publisher_display_name: XibeChat
   identity_name: XibeChat.XibeChat
   msix_version: 1.0.0.0
-  logo_path: android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+  logo_path: logo.png
   capabilities: internetClient
