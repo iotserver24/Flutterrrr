@@ -48,6 +48,26 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Setup Android signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          # Decode and save keystore
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/xibe-chat-app.jks
+            # Create key.properties file
+            echo "storePassword=$KEYSTORE_PASSWORD" > android/key.properties
+            echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
+            echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+            echo "storeFile=xibe-chat-app.jks" >> android/key.properties
+            echo "✅ Release signing configured"
+          else
+            echo "⚠️  No signing secrets found, using debug signing"
+          fi
+
       - name: Build Universal APK
         run: flutter build apk --release
 

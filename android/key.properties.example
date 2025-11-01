@@ -1,0 +1,4 @@
+storePassword=<YOUR_KEYSTORE_PASSWORD>
+keyPassword=<YOUR_KEY_PASSWORD>
+keyAlias=R3AP3Redit
+storeFile=xibe-chat-app.jks
