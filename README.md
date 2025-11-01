@@ -2,6 +2,16 @@
 //copilot made this lol
 A modern AI chat application built with Flutter - available on Android, iOS, Windows, macOS, and Linux.
 
+## 🔐 Android Release Signing
+
+The app is now configured for signed Android releases! To build signed APKs/AABs:
+
+- **For GitHub Actions**: See [KEYSTORE_QUICK_START.md](KEYSTORE_QUICK_START.md) - just add 4 secrets!
+- **For local builds**: Create `android/key.properties` with your keystore passwords
+- **Detailed guide**: [GITHUB_ACTIONS_SECRETS.md](GITHUB_ACTIONS_SECRETS.md)
+
+Quick setup script: `./scripts/encode-keystore.sh` (Linux/macOS) or `.\scripts\encode-keystore.ps1` (Windows)
+
 ## Features
 
 - 🤖 AI-powered chat interface with Xibe API integration
