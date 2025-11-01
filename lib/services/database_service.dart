@@ -49,7 +49,7 @@ class DatabaseService {
     
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE chats(
@@ -67,9 +67,18 @@ class DatabaseService {
             timestamp TEXT NOT NULL,
             webSearchUsed INTEGER NOT NULL,
             chatId INTEGER NOT NULL,
+            imageBase64 TEXT,
+            imagePath TEXT,
             FOREIGN KEY (chatId) REFERENCES chats (id) ON DELETE CASCADE
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // Add image columns for version 2
+          await db.execute('ALTER TABLE messages ADD COLUMN imageBase64 TEXT');
+          await db.execute('ALTER TABLE messages ADD COLUMN imagePath TEXT');
+        }
       },
     );
   }
