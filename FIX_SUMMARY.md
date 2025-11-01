@@ -76,9 +76,9 @@ Go to your repository **Settings** → **Secrets and variables** → **Actions**
 | Secret Name | Value | Source |
 |-------------|-------|--------|
 | `KEYSTORE_BASE64` | Copy contents of `keystore_base64_clean.txt` | See file in repo |
-| `KEYSTORE_PASSWORD` | `18751@anish` | From key.properties |
-| `KEY_PASSWORD` | `18751@anish` | From key.properties |
-| `KEY_ALIAS` | `xibe_chat_key` | From key.properties |
+| `KEYSTORE_PASSWORD` | `<your_keystore_password>` | From android/key.properties |
+| `KEY_PASSWORD` | `<your_key_password>` | From android/key.properties |
+| `KEY_ALIAS` | `xibe_chat_key` | From android/key.properties |
 
 **To get KEYSTORE_BASE64**:
 ```bash
@@ -165,9 +165,9 @@ After applying this fix and updating the GitHub Secrets:
 
 ### Keystore created but wrong password?
 
-1. Verify `KEYSTORE_PASSWORD` secret: `18751@anish`
-2. Verify `KEY_PASSWORD` secret: `18751@anish`
-3. Verify `KEY_ALIAS` secret: `xibe_chat_key`
+1. Verify `KEYSTORE_PASSWORD` secret matches the password in your `android/key.properties` file
+2. Verify `KEY_PASSWORD` secret matches the key password in your `android/key.properties` file
+3. Verify `KEY_ALIAS` secret is set to `xibe_chat_key`
 
 ### Need to regenerate the base64?
 

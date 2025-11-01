@@ -30,8 +30,8 @@ Or simply copy the entire contents of the `keystore_base64_clean.txt` file.
 | Secret Name | Value | Notes |
 |-------------|-------|-------|
 | `KEYSTORE_BASE64` | Contents of `keystore_base64_clean.txt` | The entire base64 string |
-| `KEYSTORE_PASSWORD` | `18751@anish` | Your keystore password |
-| `KEY_PASSWORD` | `18751@anish` | Your key password (usually same as keystore password) |
+| `KEYSTORE_PASSWORD` | `<your_keystore_password>` | Your keystore password from `android/key.properties` |
+| `KEY_PASSWORD` | `<your_key_password>` | Your key password (usually same as keystore password) |
 | `KEY_ALIAS` | `xibe_chat_key` | The alias used in the keystore |
 
 ### Step 3: Run the Workflow
