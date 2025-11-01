@@ -1,6 +1,6 @@
 # Xibe Chat
 //copilot made this lol
-A modern AI chat application for Android built with Flutter.
+A modern AI chat application built with Flutter - available on Android, iOS, Windows, macOS, and Linux.
 
 ## Features
 
@@ -23,24 +23,45 @@ Coming soon!
 
 ## Installation
 
-### Option 1: Download Pre-built APK
-Download the latest APK from the [Releases](https://github.com/iotserver24/Flutterrrr/releases) page.
+### Option 1: Download Pre-built Releases
+Download the latest build for your platform from the [Releases](https://github.com/iotserver24/Flutterrrr/releases) page.
+
+**Available Platforms:**
+- 📱 **Android**: APK (universal) and AAB (Play Store)
+- 💻 **Windows**: MSIX installer and portable ZIP (x64)
+- 🍎 **macOS**: DMG and ZIP for Intel and Apple Silicon
+- 🐧 **Linux**: DEB, AppImage, and TAR.GZ (x64)
+- 📱 **iOS**: IPA (requires signing)
+
+See [WORKFLOW_USAGE.md](WORKFLOW_USAGE.md) for detailed installation instructions for each platform.
 
 ### Option 2: Build from Source
 See [BUILD_INSTRUCTIONS.md](BUILD_INSTRUCTIONS.md) for detailed build instructions.
 
-Quick build:
+Quick build for Android:
 ```bash
 ./MANUAL_BUILD.sh
 ```
 
-Or manually:
+Or build for any platform:
 ```bash
 flutter pub get
-flutter build apk --release
-```
 
-The APK will be at `build/app/outputs/flutter-apk/app-release.apk`.
+# Android
+flutter build apk --release
+
+# Windows (on Windows)
+flutter build windows --release
+
+# macOS (on macOS)
+flutter build macos --release
+
+# Linux (on Linux)
+flutter build linux --release
+
+# iOS (on macOS)
+flutter build ios --release --no-codesign
+```
 
 ## Configuration
 
@@ -105,11 +126,12 @@ The APK will be generated at `build/app/outputs/flutter-apk/app-release.apk`.
 
 ## Tech Stack
 
-- **Framework**: Flutter
+- **Framework**: Flutter (cross-platform)
 - **State Management**: Provider
-- **Local Storage**: SQLite (sqflite)
+- **Local Storage**: SQLite (sqflite + sqflite_common_ffi for desktop)
 - **HTTP Client**: http package
 - **Markdown Rendering**: flutter_markdown
+- **Platforms**: Android, iOS, Windows, macOS, Linux
 
 ## License
 
