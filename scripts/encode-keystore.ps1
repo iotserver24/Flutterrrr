@@ -10,7 +10,7 @@ Write-Host ""
 # Check if keystore exists
 if (-not (Test-Path $KeystorePath)) {
     Write-Host "❌ Error: Keystore file not found at $KeystorePath" -ForegroundColor Red
-    exit 1
+    return 1
 }
 
 Write-Host "✅ Found keystore: $KeystorePath" -ForegroundColor Green

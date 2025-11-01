@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Script to encode keystore file to base64 for GitHub Actions
 # Usage: ./scripts/encode-keystore.sh
