@@ -40,6 +40,7 @@ class ApiService {
     required List<Message> history,
     required String model,
     String? systemPrompt,
+    bool reasoning = false,
   }) async* {
     try {
       final request = http.Request(
@@ -60,11 +61,14 @@ class ApiService {
         {'role': 'user', 'content': message},
       ];
 
-      request.body = jsonEncode({
+      final requestBody = {
         'model': model,
         'messages': messages,
         'stream': true,
-      });
+        if (reasoning) 'reasoning': true,
+      };
+
+      request.body = jsonEncode(requestBody);
 
       final streamedResponse = await request.send();
 

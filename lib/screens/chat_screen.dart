@@ -376,12 +376,13 @@ class _ChatScreenState extends State<ChatScreen> {
           Consumer<ChatProvider>(
             builder: (context, chatProvider, child) {
               return ChatInput(
-                onSendMessage: (message, {String? imageBase64, String? imagePath, bool webSearch = false}) {
+                onSendMessage: (message, {String? imageBase64, String? imagePath, bool webSearch = false, bool reasoning = false}) {
                   chatProvider.sendMessage(
                     message,
                     imageBase64: imageBase64,
                     imagePath: imagePath,
                     webSearch: webSearch,
+                    reasoning: reasoning,
                   );
                 },
                 isLoading: chatProvider.isLoading,
@@ -685,12 +686,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 Consumer<ChatProvider>(
                   builder: (context, chatProvider, child) {
                     return ChatInput(
-                      onSendMessage: (message, {String? imageBase64, String? imagePath, bool webSearch = false}) {
+                      onSendMessage: (message, {String? imageBase64, String? imagePath, bool webSearch = false, bool reasoning = false}) {
                         chatProvider.sendMessage(
                           message,
                           imageBase64: imageBase64,
                           imagePath: imagePath,
                           webSearch: webSearch,
+                          reasoning: reasoning,
                         );
                       },
                       isLoading: chatProvider.isLoading,

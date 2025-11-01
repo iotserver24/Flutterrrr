@@ -130,7 +130,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendMessage(String content, {String? imageBase64, String? imagePath, bool webSearch = false}) async {
+  Future<void> sendMessage(String content, {String? imageBase64, String? imagePath, bool webSearch = false, bool reasoning = false}) async {
     if (_currentChat == null) {
       await createNewChat();
     }
@@ -178,6 +178,7 @@ class ChatProvider extends ChangeNotifier {
         history: historyForApi,
         model: _selectedModel,
         systemPrompt: _systemPrompt,
+        reasoning: reasoning,
       )) {
         _streamingContent += chunk;
         notifyListeners();
