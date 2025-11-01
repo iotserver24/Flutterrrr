@@ -553,6 +553,12 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Enable iOS icon generation
+        run: |
+          # Temporarily enable iOS icon generation now that iOS directory exists
+          sed -i.bak 's/ios: false/ios: true/' pubspec.yaml
+          rm pubspec.yaml.bak
+
       - name: Generate app icons
         run: |
           echo "🎨 Generating app icons..."
