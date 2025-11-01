@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/memory.dart';
+import '../services/database_service.dart';
 
 class SettingsProvider extends ChangeNotifier {
+  // Memory limits
+  static const int maxTotalMemoryCharacters = 1000;
+  static const int maxSingleMemoryCharacters = 200;
   SharedPreferences? _prefs;
+  final DatabaseService _databaseService = DatabaseService();
   String? _apiKey;
   String? _systemPrompt;
   String? _e2bApiKey;
@@ -11,6 +17,8 @@ class SettingsProvider extends ChangeNotifier {
   double _topP = 1.0;
   double _frequencyPenalty = 0.0;
   double _presencePenalty = 0.0;
+  List<Memory> _memories = [];
+  int _cachedTotalMemoryCharacters = 0;
 
   String? get apiKey => _apiKey;
   String? get systemPrompt => _systemPrompt;
@@ -20,9 +28,11 @@ class SettingsProvider extends ChangeNotifier {
   double get topP => _topP;
   double get frequencyPenalty => _frequencyPenalty;
   double get presencePenalty => _presencePenalty;
+  List<Memory> get memories => _memories;
 
   SettingsProvider() {
     _loadSettings();
+    _loadMemories();
   }
 
   Future<void> _loadSettings() async {
@@ -96,5 +106,53 @@ class SettingsProvider extends ChangeNotifier {
     _presencePenalty = value;
     await _prefs?.setDouble('presence_penalty', value);
     notifyListeners();
+  }
+
+  // Memory management
+  Future<void> _loadMemories() async {
+    _memories = await _databaseService.getAllMemories();
+    _updateCachedTotalCharacters();
+    notifyListeners();
+  }
+
+  void _updateCachedTotalCharacters() {
+    _cachedTotalMemoryCharacters = _memories.fold(0, (sum, memory) => sum + memory.content.length);
+  }
+
+  Future<void> addMemory(String content) async {
+    final now = DateTime.now();
+    final memory = Memory(
+      content: content,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _databaseService.insertMemory(memory);
+    await _loadMemories();
+  }
+
+  Future<void> updateMemoryContent(int memoryId, String content) async {
+    final memory = _memories.firstWhere((m) => m.id == memoryId);
+    final updatedMemory = memory.copyWith(
+      content: content,
+      updatedAt: DateTime.now(),
+    );
+    await _databaseService.updateMemory(updatedMemory);
+    await _loadMemories();
+  }
+
+  Future<void> deleteMemory(int memoryId) async {
+    await _databaseService.deleteMemory(memoryId);
+    await _loadMemories();
+  }
+
+  int getTotalMemoryCharacters() {
+    return _cachedTotalMemoryCharacters;
+  }
+
+  String getMemoriesContext() {
+    if (_memories.isEmpty) return '';
+    
+    final memoryPoints = _memories.map((m) => '- ${m.content}').join('\n');
+    return 'User Memory (Important context about the user):\n$memoryPoints';
   }
 }

@@ -65,8 +65,19 @@ class XibeChatApp extends StatelessWidget {
           },
         ),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+      child: Consumer2<ThemeProvider, SettingsProvider>(
+        builder: (context, themeProvider, settingsProvider, child) {
+          // Connect memory context getter and memory extraction callback to chat provider
+          final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+          chatProvider.setMemoryContextGetter(() => settingsProvider.getMemoriesContext());
+          chatProvider.setOnMemoryExtracted((memory) async {
+            // Check if adding this memory would exceed the limit
+            final currentTotal = settingsProvider.getTotalMemoryCharacters();
+            if (currentTotal + memory.length <= SettingsProvider.maxTotalMemoryCharacters) {
+              await settingsProvider.addMemory(memory);
+            }
+          });
+          
           return MaterialApp(
             key: const ValueKey('xibe_chat_app'),
             title: 'Xibe Chat',

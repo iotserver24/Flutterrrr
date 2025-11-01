@@ -104,15 +104,9 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Transform.rotate(
                   angle: _rotationAnimation.value,
                   child: Container(
-                    width: 120,
-                    height: 120,
+                    width: 150,
+                    height: 150,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
                           color: const Color(0xFF3B82F6).withOpacity(0.5),
@@ -121,10 +115,11 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.chat_bubble_rounded,
-                      size: 60,
-                      color: Colors.white,
+                    child: Image.asset(
+                      'logo-nobg.png',
+                      width: 150,
+                      height: 150,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),

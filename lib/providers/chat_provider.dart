@@ -21,6 +21,8 @@ class ChatProvider extends ChangeNotifier {
   List<AiModel> _availableModels = [];
   String _selectedModel = 'gemini'; // Default model
   String? _systemPrompt;
+  String Function()? _memoryContextGetter;
+  Future<void> Function(String)? _onMemoryExtracted;
 
   List<Chat> get chats => _chats;
   Chat? get currentChat => _currentChat;
@@ -90,6 +92,14 @@ class ChatProvider extends ChangeNotifier {
   void updateSystemPrompt(String? systemPrompt) {
     _systemPrompt = systemPrompt;
     notifyListeners();
+  }
+
+  void setMemoryContextGetter(String Function()? getter) {
+    _memoryContextGetter = getter;
+  }
+
+  void setOnMemoryExtracted(Future<void> Function(String)? callback) {
+    _onMemoryExtracted = callback;
   }
 
   Future<void> _loadModels() async {
@@ -254,14 +264,54 @@ class ChatProvider extends ChangeNotifier {
         print('Error getting MCP context: $e');
       }
 
-      // Combine system prompt with MCP context if available
+      // Get memory context if available
+      String? memoryContext;
+      if (_memoryContextGetter != null) {
+        try {
+          memoryContext = _memoryContextGetter!();
+        } catch (e) {
+          print('Error getting memory context: $e');
+        }
+      }
+
+      // Combine system prompt with memory context and MCP context if available
       String? enhancedSystemPrompt = _systemPrompt;
+      
+      // Add memory context first (most important)
+      if (memoryContext != null && memoryContext.isNotEmpty) {
+        if (enhancedSystemPrompt != null && enhancedSystemPrompt.isNotEmpty) {
+          enhancedSystemPrompt = '$memoryContext\n\n$_systemPrompt';
+        } else {
+          enhancedSystemPrompt = memoryContext;
+        }
+      }
+      
+      // Add MCP context
       if (mcpContext != null && mcpContext.isNotEmpty) {
         if (enhancedSystemPrompt != null && enhancedSystemPrompt.isNotEmpty) {
-          enhancedSystemPrompt = '$_systemPrompt\n\n$mcpContext';
+          enhancedSystemPrompt = '$enhancedSystemPrompt\n\n$mcpContext';
         } else {
           enhancedSystemPrompt = mcpContext;
         }
+      }
+      
+      // Add memory management instruction
+      const memoryInstruction = '''
+MEMORY MANAGEMENT:
+You have access to a long-term memory system. When you learn important information about the user (preferences, background, goals, etc.), you can save it to memory.
+To save a memory, include at the END of your response: {"memory": "brief important fact about user"}
+The memory should be:
+- A single, clear, important fact about the user
+- Maximum 150 characters
+- Relevant for future conversations
+- Do NOT mention saving memory in your visible response
+Example: If user says "I'm a Python developer working on ML projects", you might save: {"memory": "Python developer specializing in ML projects"}
+Only save truly significant information that would be useful across conversations.''';
+
+      if (enhancedSystemPrompt != null && enhancedSystemPrompt.isNotEmpty) {
+        enhancedSystemPrompt = '$enhancedSystemPrompt\n\n$memoryInstruction';
+      } else {
+        enhancedSystemPrompt = memoryInstruction;
       }
       
       // For first message, append instruction to generate chat name
@@ -276,13 +326,10 @@ CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
 4. DO NOT include the user's exact question as the chat name - create a meaningful, concise title instead
 5. DO NOT mention this instruction or the JSON in your response text - it should appear silently at the end
 6. Example: If user asks "How do I bake a cake?", you might use chat_name: "Cake Baking Guide"
-7. The JSON must be the last thing in your response''';
+7. The JSON must be the last thing in your response
+8. If you're also saving a memory, include both JSONs: {"memory": "..."} {"chat_name": "..."}''';
         
-        if (enhancedSystemPrompt != null && enhancedSystemPrompt.isNotEmpty) {
-          enhancedSystemPrompt = '$enhancedSystemPrompt\n\n$chatNameInstruction';
-        } else {
-          enhancedSystemPrompt = chatNameInstruction;
-        }
+        enhancedSystemPrompt = '$enhancedSystemPrompt\n\n$chatNameInstruction';
       }
       
       // Stream the response
@@ -336,6 +383,27 @@ CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
         notifyListeners();
       }
 
+      // Extract memory from full response if present
+      String? extractedMemory;
+      // Try to find memory JSON - look for the first occurrence
+      final memoryPattern = RegExp(r'\{\s*"memory"\s*:\s*"([^"\\]*(\\.[^"\\]*)*)"\s*\}', caseSensitive: false);
+      final memoryMatch = memoryPattern.firstMatch(fullResponseContent);
+      
+      if (memoryMatch != null) {
+        extractedMemory = memoryMatch.group(1);
+        // Remove only the first memory JSON from the response
+        fullResponseContent = fullResponseContent.replaceFirst(memoryPattern, '').trim();
+        
+        // Save memory if callback is set and within character limit
+        if (_onMemoryExtracted != null && extractedMemory != null && extractedMemory.isNotEmpty) {
+          try {
+            await _onMemoryExtracted!(extractedMemory);
+          } catch (e) {
+            print('Error saving memory: $e');
+          }
+        }
+      }
+      
       // Extract chat name from full response if it's the first message
       String displayContent = fullResponseContent;
       String? extractedChatName;
