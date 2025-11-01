@@ -4,6 +4,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
+import '../models/memory.dart';
 
 class DatabaseService {
   static Database? _database;
@@ -48,7 +49,7 @@ class DatabaseService {
     
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE chats(
@@ -73,6 +74,14 @@ class DatabaseService {
             FOREIGN KEY (chatId) REFERENCES chats (id) ON DELETE CASCADE
           )
         ''');
+        await db.execute('''
+          CREATE TABLE memories(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT NOT NULL,
+            createdAt TEXT NOT NULL,
+            updatedAt TEXT NOT NULL
+          )
+        ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -87,6 +96,17 @@ class DatabaseService {
           await db.execute('ALTER TABLE messages ADD COLUMN isThinking INTEGER DEFAULT 0');
           // Update existing rows to have isThinking = 0
           await db.update('messages', {'isThinking': 0}, where: 'isThinking IS NULL');
+        }
+        if (oldVersion < 4) {
+          // Add memories table for version 4
+          await db.execute('''
+            CREATE TABLE memories(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              content TEXT NOT NULL,
+              createdAt TEXT NOT NULL,
+              updatedAt TEXT NOT NULL
+            )
+          ''');
         }
       },
     );
@@ -148,5 +168,40 @@ class DatabaseService {
     final db = await database;
     await db.delete('messages');
     await db.delete('chats');
+  }
+
+  // Memory operations
+  Future<int> insertMemory(Memory memory) async {
+    final db = await database;
+    return await db.insert('memories', memory.toMap());
+  }
+
+  Future<List<Memory>> getAllMemories() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'memories',
+      orderBy: 'createdAt DESC',
+    );
+    return List.generate(maps.length, (i) => Memory.fromMap(maps[i]));
+  }
+
+  Future<void> updateMemory(Memory memory) async {
+    final db = await database;
+    await db.update(
+      'memories',
+      memory.toMap(),
+      where: 'id = ?',
+      whereArgs: [memory.id],
+    );
+  }
+
+  Future<void> deleteMemory(int memoryId) async {
+    final db = await database;
+    await db.delete('memories', where: 'id = ?', whereArgs: [memoryId]);
+  }
+
+  Future<void> deleteAllMemories() async {
+    final db = await database;
+    await db.delete('memories');
   }
 }

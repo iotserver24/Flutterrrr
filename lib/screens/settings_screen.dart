@@ -6,6 +6,7 @@ import '../providers/theme_provider.dart' show ThemeProvider, AppTheme;
 import '../providers/chat_provider.dart';
 import '../providers/settings_provider.dart';
 import 'mcp_servers_screen.dart';
+import 'memory_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -425,6 +426,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const Divider(),
+          _buildSection(
+            context,
+            'AI Memory',
+            [
+              ListTile(
+                title: const Text('Long-Term Memory'),
+                subtitle: Consumer<SettingsProvider>(
+                  builder: (context, settings, child) {
+                    final memoryCount = settings.memories.length;
+                    final totalChars = settings.getTotalMemoryCharacters();
+                    return Text(
+                      '$memoryCount memory points • $totalChars/1000 characters used',
+                      style: TextStyle(
+                        color: totalChars > 900 ? Colors.orange : Colors.grey,
+                      ),
+                    );
+                  },
+                ),
+                leading: const Icon(Icons.psychology_outlined),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MemoryScreen(),
                     ),
                   );
                 },
