@@ -498,54 +498,65 @@ class _ChatInputState extends State<ChatInput> {
                 //   ),
                 // ),
                 Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    enabled: !widget.isLoading,
-                    maxLines: null,
-                    textInputAction: _isDesktop ? TextInputAction.newline : TextInputAction.send,
-                    keyboardType: TextInputType.multiline,
-                    decoration: InputDecoration(
-                      hintText: 'Type something',
-                      hintStyle: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
-                        fontSize: 15,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(
-                          color: Colors.white.withOpacity(0.1),
-                          width: 1,
+                  child: KeyboardListener(
+                    focusNode: FocusNode(),
+                    onKeyEvent: (KeyEvent event) {
+                      // On desktop: Enter sends, Shift+Enter or Ctrl+Enter adds new line
+                      if (_isDesktop && event is KeyDownEvent) {
+                        if (event.logicalKey == LogicalKeyboardKey.enter) {
+                          // If no modifier keys, send message
+                          if (!HardwareKeyboard.instance.isShiftPressed && 
+                              !HardwareKeyboard.instance.isControlPressed) {
+                            _sendMessage();
+                          }
+                          // Otherwise allow default behavior (new line)
+                        }
+                      }
+                    },
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      enabled: !widget.isLoading,
+                      maxLines: null,
+                      textInputAction: _isDesktop ? TextInputAction.newline : TextInputAction.send,
+                      keyboardType: TextInputType.multiline,
+                      decoration: InputDecoration(
+                        hintText: 'Type something',
+                        hintStyle: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 15,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide(
+                            color: Colors.white.withOpacity(0.1),
+                            width: 1,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF3B82F6),
+                            width: 2,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF1A1A1A),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: isWideScreen ? 20 : 16,
+                          vertical: isWideScreen ? 14 : 12,
                         ),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF3B82F6),
-                          width: 2,
-                        ),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFF1A1A1A),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: isWideScreen ? 20 : 16,
-                        vertical: isWideScreen ? 14 : 12,
-                      ),
+                      onSubmitted: (_) {
+                        if (!_isDesktop) {
+                          _sendMessage();
+                        }
+                      },
                     ),
-                    onSubmitted: (_) {
-                      if (!_isDesktop) {
-                        _sendMessage();
-                      }
-                    },
-                    onEditingComplete: () {
-                      if (_isDesktop) {
-                        _sendMessage();
-                      }
-                    },
                   ),
                 ),
                 const SizedBox(width: 8),
