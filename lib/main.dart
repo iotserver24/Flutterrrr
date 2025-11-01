@@ -26,7 +26,7 @@ void main() async {
       size: Size(1200, 800),
       minimumSize: Size(800, 600),
       center: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Color(0xFF0D0D0D),
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.normal,
       title: 'Xibe Chat',

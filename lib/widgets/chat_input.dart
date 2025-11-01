@@ -24,6 +24,7 @@ class _ChatInputState extends State<ChatInput> {
   final TextEditingController _controller = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
   final FocusNode _focusNode = FocusNode();
+  final FocusNode _keyboardListenerFocusNode = FocusNode();
   bool _hasText = false;
   XFile? _selectedImage;
   String? _imageBase64;
@@ -48,6 +49,7 @@ class _ChatInputState extends State<ChatInput> {
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
+    _keyboardListenerFocusNode.dispose();
     super.dispose();
   }
 
@@ -498,17 +500,18 @@ class _ChatInputState extends State<ChatInput> {
                 //   ),
                 // ),
                 Expanded(
-                  child: RawKeyboardListener(
-                    focusNode: FocusNode(), // Temporary focus node for keyboard listener
-                    onKey: (RawKeyEvent event) {
-                      // On desktop: Enter sends, Ctrl+Enter adds new line
-                      if (_isDesktop && event is RawKeyDownEvent) {
+                  child: KeyboardListener(
+                    focusNode: _keyboardListenerFocusNode,
+                    onKeyEvent: (KeyEvent event) {
+                      // On desktop: Enter sends, Shift+Enter or Ctrl+Enter adds new line
+                      if (_isDesktop && event is KeyDownEvent) {
                         if (event.logicalKey == LogicalKeyboardKey.enter) {
-                          if (!event.isControlPressed) {
-                            // Enter without Ctrl: send message
+                          // If no modifier keys, send message
+                          if (!HardwareKeyboard.instance.isShiftPressed && 
+                              !HardwareKeyboard.instance.isControlPressed) {
                             _sendMessage();
                           }
-                          // Ctrl+Enter: allow default behavior (new line)
+                          // Otherwise allow default behavior (new line)
                         }
                       }
                     },
@@ -518,6 +521,7 @@ class _ChatInputState extends State<ChatInput> {
                       enabled: !widget.isLoading,
                       maxLines: null,
                       textInputAction: _isDesktop ? TextInputAction.newline : TextInputAction.send,
+                      keyboardType: TextInputType.multiline,
                       decoration: InputDecoration(
                         hintText: 'Type something',
                         hintStyle: TextStyle(
