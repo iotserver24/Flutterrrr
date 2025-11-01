@@ -1,7 +1,7 @@
 name: xibe_chat
 description: A modern AI chat application
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.3+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -21,6 +21,9 @@ dependencies:
   msix: ^3.16.7
   window_manager: ^0.3.7
   image_picker: ^1.0.7
+  flutter_highlight: ^0.7.0
+  highlight: ^0.7.0
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

@@ -2,8 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'package:intl/intl.dart';
 import '../models/message.dart';
+import 'code_block.dart';
 
 class MessageBubble extends StatefulWidget {
   final Message message;
@@ -122,15 +124,25 @@ class _MessageBubbleState extends State<MessageBubble>
                       data: widget.message.content,
                       styleSheet: MarkdownStyleSheet(
                         p: const TextStyle(color: Colors.white),
+                        h1: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                        h2: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        h3: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        listBullet: const TextStyle(color: Colors.white),
+                        tableBody: const TextStyle(color: Colors.white),
                         code: TextStyle(
                           backgroundColor: Colors.black.withOpacity(0.3),
                           color: Colors.green,
+                          fontFamily: 'monospace',
                         ),
                         codeblockDecoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
+                      builders: {
+                        'code': CodeBlockBuilder(),
+                      },
+                      extensionSet: md.ExtensionSet.gitHubFlavored,
                     ),
                   ),
                   // Add blinking cursor for streaming messages
@@ -201,6 +213,31 @@ class _MessageBubbleState extends State<MessageBubble>
           ],
         ),
       ),
+    );
+  }
+}
+
+// Custom markdown builder for code blocks
+class CodeBlockBuilder extends MarkdownElementBuilder {
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    final String textContent = element.textContent;
+    
+    // Extract language from info string if available
+    String? language;
+    if (element.attributes['class'] != null) {
+      final classes = element.attributes['class']!.split(' ');
+      for (var cls in classes) {
+        if (cls.startsWith('language-')) {
+          language = cls.substring(9); // Remove 'language-' prefix
+          break;
+        }
+      }
+    }
+
+    return CodeBlock(
+      code: textContent,
+      language: language,
     );
   }
 }
