@@ -19,6 +19,7 @@ dependencies:
   flutter_markdown: ^0.6.18
   intl: ^0.18.0
   msix: ^3.16.7
+  window_manager: ^0.3.7
 
 dev_dependencies:
   flutter_test:

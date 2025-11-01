@@ -1,12 +1,36 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'providers/chat_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/settings_provider.dart';
 import 'screens/chat_screen.dart';
+import 'screens/settings_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Configure window for desktop platforms
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    await windowManager.ensureInitialized();
+    
+    const windowOptions = WindowOptions(
+      size: Size(1200, 800),
+      minimumSize: Size(800, 600),
+      center: true,
+      backgroundColor: Colors.transparent,
+      skipTaskbar: false,
+      titleBarStyle: TitleBarStyle.normal,
+      title: 'Xibe Chat',
+    );
+    
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
+  
   runApp(const XibeChatApp());
 }
 
@@ -41,6 +65,9 @@ class XibeChatApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: themeProvider.themeData,
             home: const ChatScreen(),
+            routes: {
+              '/settings': (context) => const SettingsScreen(),
+            },
           );
         },
       ),
