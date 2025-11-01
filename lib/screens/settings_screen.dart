@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/theme_provider.dart' show ThemeProvider, AppTheme;
 import '../providers/chat_provider.dart';
 import '../providers/settings_provider.dart';
+import 'mcp_servers_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -434,6 +435,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   );
                 },
+              ),
+            ],
+          ),
+          const Divider(),
+          _buildSection(
+            context,
+            'Integrations',
+            [
+              ListTile(
+                title: const Text('MCP Servers'),
+                subtitle: const Text('Manage Model Context Protocol servers'),
+                leading: const Icon(Icons.dns_outlined),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const McpServersScreen(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                title: const Text('Code Execution (E2B)'),
+                subtitle: Consumer<SettingsProvider>(
+                  builder: (context, settings, child) {
+                    final hasKey = settings.e2bApiKey != null && 
+                                   settings.e2bApiKey!.isNotEmpty;
+                    return Text(
+                      hasKey 
+                          ? 'Configured - Code execution enabled'
+                          : 'Not configured - Add E2B API key above',
+                      style: TextStyle(
+                        color: hasKey ? Colors.green : Colors.orange,
+                      ),
+                    );
+                  },
+                ),
+                leading: const Icon(Icons.code),
               ),
             ],
           ),
