@@ -57,7 +57,8 @@ jobs:
         run: |
           # Decode and save keystore
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/xibe-chat-app.jks
+            # Remove all whitespace and newlines from base64 string
+            echo "$KEYSTORE_BASE64" | tr -d '\n\r\t ' | base64 --decode > android/app/xibe-chat-app.jks
             # Set secure permissions on keystore
             chmod 600 android/app/xibe-chat-app.jks
             # Create key.properties file
