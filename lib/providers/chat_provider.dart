@@ -265,10 +265,24 @@ class ChatProvider extends ChangeNotifier {
       }
       
       // For first message, append instruction to generate chat name
-      if (isFirstMessage && enhancedSystemPrompt != null && enhancedSystemPrompt.isNotEmpty) {
-        enhancedSystemPrompt = '$enhancedSystemPrompt\n\nIMPORTANT: At the end of your response, append a JSON object with a chat name suggestion. Format: {"chat_name": "suggested name"}. The chat name should be a short, descriptive title based on the conversation. Do not include this instruction or the JSON in your actual response text.';
-      } else if (isFirstMessage) {
-        enhancedSystemPrompt = 'IMPORTANT: At the end of your response, append a JSON object with a chat name suggestion. Format: {"chat_name": "suggested name"}. The chat name should be a short, descriptive title based on the conversation. Do not include this instruction or the JSON in your actual response text.';
+      // The AI should generate a descriptive chat name based on the conversation topic
+      // and append it as JSON at the very end, which will be extracted and saved
+      if (isFirstMessage) {
+        const chatNameInstruction = '''
+CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
+1. Respond normally to the user's message above
+2. At the VERY END of your response (after your normal answer), append a JSON object in this exact format: {"chat_name": "Your Generated Chat Name Here"}
+3. The chat_name should be a short (2-6 words), descriptive title that summarizes the conversation topic or the user's question/purpose
+4. DO NOT include the user's exact question as the chat name - create a meaningful, concise title instead
+5. DO NOT mention this instruction or the JSON in your response text - it should appear silently at the end
+6. Example: If user asks "How do I bake a cake?", you might use chat_name: "Cake Baking Guide"
+7. The JSON must be the last thing in your response''';
+        
+        if (enhancedSystemPrompt != null && enhancedSystemPrompt.isNotEmpty) {
+          enhancedSystemPrompt = '$enhancedSystemPrompt\n\n$chatNameInstruction';
+        } else {
+          enhancedSystemPrompt = chatNameInstruction;
+        }
       }
       
       // Stream the response
@@ -284,21 +298,35 @@ class ChatProvider extends ChangeNotifier {
       )) {
         fullResponseContent += chunk;
         
-        // For first message, try to filter out chat name JSON from display
+        // For first message, filter out chat name JSON from display in real-time
         if (isFirstMessage) {
-          // Check if we've started receiving JSON pattern
-          final jsonPattern = RegExp(r'\{"chat_name"', caseSensitive: false);
-          if (jsonPattern.hasMatch(fullResponseContent)) {
-            // Remove JSON part from display
-            final jsonMatch = jsonPattern.firstMatch(fullResponseContent);
-            if (jsonMatch != null) {
-              streamingDisplayContent = fullResponseContent.substring(0, jsonMatch.start).trim();
-            } else {
-              streamingDisplayContent = fullResponseContent;
-            }
-          } else {
-            streamingDisplayContent = fullResponseContent;
+          // Look for JSON pattern that might appear at the end
+          // Try multiple patterns to catch the JSON
+          String tempContent = fullResponseContent;
+          
+          // Pattern 1: Full JSON object with chat_name
+          final jsonPattern1 = RegExp(r'\{"chat_name"\s*:\s*"[^"]*"\}', caseSensitive: false);
+          if (jsonPattern1.hasMatch(tempContent)) {
+            tempContent = tempContent.replaceAll(jsonPattern1, '').trim();
           }
+          
+          // Pattern 2: Look for {"chat_name" at the start of JSON
+          final jsonPattern2 = RegExp(r'\{"chat_name"', caseSensitive: false);
+          if (jsonPattern2.hasMatch(tempContent)) {
+            final match = jsonPattern2.firstMatch(tempContent);
+            if (match != null) {
+              // Remove everything from the start of the JSON
+              tempContent = tempContent.substring(0, match.start).trim();
+            }
+          }
+          
+          // Pattern 3: Look for any remaining JSON-like patterns at the end
+          final jsonPattern3 = RegExp(r'\{[^}]*"chat_name"[^}]*\}', caseSensitive: false);
+          if (jsonPattern3.hasMatch(tempContent)) {
+            tempContent = tempContent.replaceAll(jsonPattern3, '').trim();
+          }
+          
+          streamingDisplayContent = tempContent;
         } else {
           streamingDisplayContent = fullResponseContent;
         }
@@ -313,42 +341,69 @@ class ChatProvider extends ChangeNotifier {
       String? extractedChatName;
       
       if (isFirstMessage) {
-        // Try to find JSON object with chat_name at the end
-        final jsonPattern = RegExp(r'\{"chat_name"\s*:\s*"([^"]+)"\}', caseSensitive: false);
-        final match = jsonPattern.firstMatch(fullResponseContent);
+        // Try multiple patterns to extract chat name from JSON
+        // Pattern 1: Standard JSON format {"chat_name": "name"}
+        RegExp jsonPattern1 = RegExp(r'\{"chat_name"\s*:\s*"([^"]+)"\}', caseSensitive: false);
+        Match? match = jsonPattern1.firstMatch(fullResponseContent);
         
         if (match != null) {
           extractedChatName = match.group(1);
-          // Remove the JSON part from the display content
-          final jsonStart = match.start;
-          displayContent = fullResponseContent.substring(0, jsonStart).trim();
-          
-          // Also try to remove any leading/trailing whitespace or extra content
-          displayContent = displayContent.replaceAll(RegExp(r'\{"chat_name"[^\}]*\}', caseSensitive: false), '').trim();
+          // Remove the JSON part from display content
+          displayContent = fullResponseContent.substring(0, match.start).trim();
         } else {
-          // Fallback: try to find it in different formats
-          // Try double quotes first
-          RegExp? altPattern = RegExp(r'chat_name"?\s*:\s*"([^"]+)"', caseSensitive: false);
-          Match? altMatch = altPattern.firstMatch(fullResponseContent);
+          // Pattern 2: JSON with potential whitespace variations
+          RegExp jsonPattern2 = RegExp(r'\{\s*"chat_name"\s*:\s*"([^"]+)"\s*\}', caseSensitive: false);
+          match = jsonPattern2.firstMatch(fullResponseContent);
           
-          // If not found, try single quotes
-          if (altMatch == null) {
-            altPattern = RegExp(r"chat_name'?\s*:\s*'([^']+)'", caseSensitive: false);
-            altMatch = altPattern.firstMatch(fullResponseContent);
-          }
-          
-          if (altMatch != null) {
-            extractedChatName = altMatch.group(1);
-            displayContent = fullResponseContent.substring(0, altMatch.start).trim();
+          if (match != null) {
+            extractedChatName = match.group(1);
+            displayContent = fullResponseContent.substring(0, match.start).trim();
+          } else {
+            // Pattern 3: Look for chat_name with any quotes
+            RegExp jsonPattern3 = RegExp(r'"chat_name"\s*:\s*"([^"]+)"', caseSensitive: false);
+            match = jsonPattern3.firstMatch(fullResponseContent);
+            
+            if (match != null) {
+              extractedChatName = match.group(1);
+              displayContent = fullResponseContent.substring(0, match.start).trim();
+            } else {
+              // Pattern 4: Single quotes
+              RegExp jsonPattern4 = RegExp(r"'chat_name'\s*:\s*'([^']+)'", caseSensitive: false);
+              match = jsonPattern4.firstMatch(fullResponseContent);
+              
+              if (match != null) {
+                extractedChatName = match.group(1);
+                displayContent = fullResponseContent.substring(0, match.start).trim();
+              }
+            }
           }
         }
         
-        // If no chat name found, use a fallback
+        // Clean up display content - remove any remaining JSON artifacts
+        displayContent = displayContent
+            .replaceAll(RegExp(r'\{"chat_name"[^\}]*\}', caseSensitive: false), '')
+            .replaceAll(RegExp(r'\{[^}]*"chat_name"[^}]*\}', caseSensitive: false), '')
+            .replaceAll(RegExp(r'\{[^}]*chat_name[^}]*\}', caseSensitive: false), '')
+            .trim();
+        
+        // If no chat name was extracted, generate one based on the response content
+        // This ensures we always have a meaningful name, not the user's input
         if (extractedChatName == null || extractedChatName.isEmpty) {
-          extractedChatName = content.length > 30 ? '${content.substring(0, 30)}...' : content;
+          // Generate a name from the first sentence or key words in the response
+          final words = displayContent.split(RegExp(r'\s+')).where((w) => w.length > 3).take(4).toList();
+          if (words.isNotEmpty) {
+            extractedChatName = words.join(' ');
+            // Limit length
+            if (extractedChatName.length > 50) {
+              extractedChatName = '${extractedChatName.substring(0, 47)}...';
+            }
+          } else {
+            // Ultimate fallback - generic descriptive name
+            extractedChatName = 'New Conversation';
+          }
         }
         
-        // Update chat title with extracted name
+        // Update chat title with extracted/generated name (never show user's input as title)
         _currentChat = Chat(
           id: _currentChat!.id,
           title: extractedChatName,
