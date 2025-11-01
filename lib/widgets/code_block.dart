@@ -26,6 +26,12 @@ class _CodeBlockState extends State<CodeBlock> {
   String? _output;
   String? _error;
 
+  // Constants for timeouts
+  static const int _sandboxCreateTimeoutSeconds = 10;
+  static const int _codeExecutionTimeoutSeconds = 65;
+  static const int _sandboxCleanupTimeoutSeconds = 5;
+  static const int _sandboxLifetimeSeconds = 300;
+
   bool get _canRun {
     final lang = widget.language?.toLowerCase();
     return lang == 'python' || 
@@ -86,12 +92,16 @@ class _CodeBlockState extends State<CodeBlock> {
         },
         body: jsonEncode({
           'template': template,
-          'timeout': 300, // 5 minutes
+          'timeout': _sandboxLifetimeSeconds,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(Duration(seconds: _sandboxCreateTimeoutSeconds));
 
-      if (createResponse.statusCode != 201) {
-        throw Exception('Failed to create sandbox: ${createResponse.statusCode} ${createResponse.body}');
+      if (createResponse.statusCode == 401) {
+        throw Exception('Invalid E2B API key. Please check your settings.');
+      } else if (createResponse.statusCode == 429) {
+        throw Exception('Rate limit exceeded. Please try again later.');
+      } else if (createResponse.statusCode != 201) {
+        throw Exception('Failed to create sandbox (${createResponse.statusCode})');
       }
 
       final sandboxData = jsonDecode(createResponse.body);
@@ -101,7 +111,18 @@ class _CodeBlockState extends State<CodeBlock> {
         throw Exception('No sandbox ID returned');
       }
 
-      // Execute code
+      // Execute code - write to file and execute to avoid shell injection
+      String command;
+      final lang = widget.language?.toLowerCase() ?? '';
+      
+      if (lang == 'python' || lang == 'py') {
+        // Write Python code to file and execute
+        command = 'cat > /tmp/code.py << \'EOFMARKER\'\n${widget.code}\nEOFMARKER\n && python3 /tmp/code.py';
+      } else {
+        // Write JS/Node code to file and execute
+        command = 'cat > /tmp/code.js << \'EOFMARKER\'\n${widget.code}\nEOFMARKER\n && node /tmp/code.js';
+      }
+
       final execResponse = await http.post(
         Uri.parse('https://api.e2b.dev/sandboxes/$sandboxId/commands'),
         headers: {
@@ -109,21 +130,26 @@ class _CodeBlockState extends State<CodeBlock> {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'command': _getExecutionCommand(),
-          'timeout': 60000, // 60 seconds
+          'command': command,
+          'timeout': 60000,
         }),
-      ).timeout(const Duration(seconds: 65));
+      ).timeout(Duration(seconds: _codeExecutionTimeoutSeconds));
 
       if (execResponse.statusCode == 200) {
         final result = jsonDecode(execResponse.body);
+        final stdout = result['stdout'] ?? result['output'] ?? '';
+        final stderr = result['stderr'] ?? '';
+        
         setState(() {
-          _output = result['stdout'] ?? result['output'] ?? 'Code executed successfully';
-          if (result['stderr'] != null && result['stderr'].isNotEmpty) {
-            _error = result['stderr'];
+          _output = stdout.isNotEmpty ? stdout : 'Code executed successfully';
+          if (stderr.isNotEmpty) {
+            _error = stderr;
           }
         });
+      } else if (execResponse.statusCode == 408) {
+        throw Exception('Code execution timed out after 60 seconds');
       } else {
-        throw Exception('Execution failed: ${execResponse.statusCode} ${execResponse.body}');
+        throw Exception('Execution failed (${execResponse.statusCode})');
       }
 
       // Cleanup: delete sandbox
@@ -133,34 +159,27 @@ class _CodeBlockState extends State<CodeBlock> {
           headers: {
             'Authorization': 'Bearer $e2bApiKey',
           },
-        ).timeout(const Duration(seconds: 5));
+        ).timeout(Duration(seconds: _sandboxCleanupTimeoutSeconds));
       } catch (e) {
-        // Ignore cleanup errors
+        // Ignore cleanup errors - sandbox will auto-expire
       }
+    } on FormatException catch (e) {
+      setState(() {
+        _error = 'Invalid response from E2B API: ${e.message}';
+      });
+    } on http.ClientException catch (e) {
+      setState(() {
+        _error = 'Network error: ${e.message}';
+      });
     } catch (e) {
       setState(() {
-        _error = 'Execution error: $e';
+        _error = e.toString().replaceFirst('Exception: ', '');
       });
     } finally {
       setState(() {
         _isRunning = false;
       });
     }
-  }
-
-  String _getExecutionCommand() {
-    final lang = widget.language?.toLowerCase() ?? '';
-    
-    if (lang == 'python' || lang == 'py') {
-      return 'python3 -c ${_escapeForShell(widget.code)}';
-    } else {
-      return 'node -e ${_escapeForShell(widget.code)}';
-    }
-  }
-
-  String _escapeForShell(String code) {
-    // Simple escaping for shell - wrap in single quotes and escape single quotes
-    return "'${code.replaceAll("'", "'\\''")}'";
   }
 
   @override

@@ -169,13 +169,13 @@ class _ChatInputState extends State<ChatInput> {
                     ),
                   ),
                 Expanded(
-                  child: KeyboardListener(
-                    focusNode: FocusNode(),
-                    onKeyEvent: (KeyEvent event) {
+                  child: RawKeyboardListener(
+                    focusNode: FocusNode(), // Temporary focus node for keyboard listener
+                    onKey: (RawKeyEvent event) {
                       // On desktop: Enter sends, Ctrl+Enter adds new line
-                      if (_isDesktop && event is KeyDownEvent) {
+                      if (_isDesktop && event is RawKeyDownEvent) {
                         if (event.logicalKey == LogicalKeyboardKey.enter) {
-                          if (!HardwareKeyboard.instance.isControlPressed) {
+                          if (!event.isControlPressed) {
                             // Enter without Ctrl: send message
                             _sendMessage();
                           }
