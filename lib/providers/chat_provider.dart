@@ -299,13 +299,13 @@ class ChatProvider extends ChangeNotifier {
       const memoryInstruction = '''
 MEMORY MANAGEMENT:
 You have access to a long-term memory system. When you learn important information about the user (preferences, background, goals, etc.), you can save it to memory.
-To save a memory, include at the END of your response: {"memory": "brief important fact about user"}
+To save a memory, use this format in your response: <save memory>brief important fact about user</save memory>
 The memory should be:
 - A single, clear, important fact about the user
-- Maximum 150 characters
+- Maximum 200 characters
 - Relevant for future conversations
-- Do NOT mention saving memory in your visible response
-Example: If user says "I'm a Python developer working on ML projects", you might save: {"memory": "Python developer specializing in ML projects"}
+- When you use the tag, it will be shown to the user with a confirmation that the memory was saved
+Example: If user says "I'm a Python developer working on ML projects", you can respond normally and include: <save memory>Python developer specializing in ML projects</save memory>
 Only save truly significant information that would be useful across conversations.''';
 
       if (enhancedSystemPrompt != null && enhancedSystemPrompt.isNotEmpty) {
@@ -327,7 +327,7 @@ CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
 5. DO NOT mention this instruction or the JSON in your response text - it should appear silently at the end
 6. Example: If user asks "How do I bake a cake?", you might use chat_name: "Cake Baking Guide"
 7. The JSON must be the last thing in your response
-8. If you're also saving a memory, include both JSONs: {"memory": "..."} {"chat_name": "..."}''';
+8. If you're also saving a memory, use the <save memory> tag anywhere in your response, and put the JSON after it''';
         
         enhancedSystemPrompt = '$enhancedSystemPrompt\n\n$chatNameInstruction';
       }
@@ -383,16 +383,17 @@ CRITICAL INSTRUCTIONS FOR THIS RESPONSE:
         notifyListeners();
       }
 
-      // Extract memory from full response if present
+      // Extract memory from full response if present using XML-style tags
       String? extractedMemory;
-      // Try to find memory JSON - look for the first occurrence
-      final memoryPattern = RegExp(r'\{\s*"memory"\s*:\s*"([^"\\]*(\\.[^"\\]*)*)"\s*\}', caseSensitive: false);
+      // Try to find memory tag - look for the first occurrence
+      final memoryPattern = RegExp(r'<save\s+memory>(.*?)</save\s+memory>', caseSensitive: false, dotAll: true);
       final memoryMatch = memoryPattern.firstMatch(fullResponseContent);
       
       if (memoryMatch != null) {
-        extractedMemory = memoryMatch.group(1);
-        // Remove only the first memory JSON from the response
-        fullResponseContent = fullResponseContent.replaceFirst(memoryPattern, '').trim();
+        extractedMemory = memoryMatch.group(1)?.trim();
+        // Replace the memory tag with a visible confirmation message
+        final confirmationMessage = '✅ *Memory saved: "$extractedMemory"*';
+        fullResponseContent = fullResponseContent.replaceFirst(memoryPattern, confirmationMessage).trim();
         
         // Save memory if callback is set and within character limit
         if (_onMemoryExtracted != null && extractedMemory != null && extractedMemory.isNotEmpty) {
